@@ -27,8 +27,6 @@ This document tracks the implementation progress and remaining tasks for the AI-
 - [x] Configure VNet and subnets for private endpoints
 - [x] Set up private DNS zones (AI Foundry, AI Services, Search, ACR)
 - [x] Configure Key Vault with access policies
-- [ ] Configure VPN connection to Netherlands (if required)
-- [ ] Implement network security groups and firewall rules
 
 ### Container Platform
 - [x] Configure Azure Container Apps Environment with Log Analytics integration
@@ -41,16 +39,6 @@ This document tracks the implementation progress and remaining tasks for the AI-
 ### Monitoring & Observability
 - [x] Configure Application Insights for the Container Apps
 - [x] Set up OpenTelemetry agent configuration
-- [ ] Configure custom metrics and dashboards
-- [ ] Set up DataDog integration (if external monitoring required)
-- [ ] Configure alerting rules and notification channels
-
-### DevOps Pipeline
-- [ ] Set up GitHub Actions or Azure DevOps pipeline
-- [ ] Configure automated deployment (1-2 per year schedule)
-- [ ] Set up staging and production environments
-- [ ] Implement blue-green deployment strategy
-- [ ] Configure automated testing in CI/CD pipeline
 
 ### Application Development
 - [x] Implement FastAPI application structure

@@ -62,6 +62,12 @@ variable "container_app_port" {
   default     = 80
 }
 
+variable "enable_container_apps_managed_otel" {
+  description = "Enable Managed OpenTelemetry agent in the Container App Environment exporting traces and logs to Application Insights"
+  type        = bool
+  default     = true
+}
+
 variable "container_app_auth_require_authentication" {
   description = "Whether to require authentication globally (Redirect unauthenticated users)."
   type        = bool
