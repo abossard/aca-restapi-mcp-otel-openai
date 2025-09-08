@@ -1,0 +1,113 @@
+# ------------------------------
+# Python
+# ------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.env
+.venv
+venv/
+ENV/
+.env*/
+
+# Packaging / build
+build/
+dist/
+.eggs/
+*.egg-info/
+*.egg
+wheelhouse/
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Unit test / coverage
+.coverage
+.coverage.*
+.cache/
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+.tox/
+.mypy_cache/
+.dmypy.json
+.dmypy/
+.pyre/
+.pytype/
+
+# Jupyter
+.ipynb_checkpoints
+
+# Logs & runtime
+*.log
+*.pid
+*.out
+*.err
+
+# IDE / tooling
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+
+# Local settings / credentials
+*.env
+.env.local
+.secret*
+secrets.*
+
+# ------------------------------
+# Terraform
+# ------------------------------
+*.tfstate
+*.tfstate.*
+.crash*
+.terraform/
+.terraform.lock.hcl
+terraform.tfvars
+terraform.tfvars.json
+# Environment-specific variable files (keep pattern generic; adjust if you want to commit examples)
+*.auto.tfvars
+*.auto.tfvars.json
+
+# Plan files
+*.plan
+*.tfplan
+
+# Override files created during experimentation
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Provider / debug outputs
+.terraformrc
+terraform.rc
+
+# ------------------------------
+# Container / Docker
+# ------------------------------
+*.tar
+**/cache/
+
+# ------------------------------
+# Azure / CLI artifacts (avoid committing local auth state)
+# ------------------------------
+.azure/
+
+# ------------------------------
+# Misc
+# ------------------------------
+nohup.out
+*.bak
+*.tmp
+
+# If you need to track a specific auto tfvars example, create an example file and remove from ignore:
+# e.g. infra/environments/dev-public.tfvars.example
