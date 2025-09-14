@@ -8,7 +8,7 @@ resource "azurerm_search_service" "main" {
   partition_count               = 1
   public_network_access_enabled = var.enable_private_endpoints ? false : true
   # Entra ID only (disable admin keys / local key auth)
-  local_authentication_enabled  = false
+  local_authentication_enabled = false
 
   identity { type = "SystemAssigned" }
 

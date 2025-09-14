@@ -8,7 +8,7 @@ resource "azurerm_cognitive_account" "ai_services" {
   sku_name                      = "S0"
   public_network_access_enabled = var.enable_private_endpoints ? false : true
   # Entra ID only: disable local (key) authentication if supported by provider version.
-  local_auth_enabled            = false
+  local_auth_enabled = false
 
   identity { type = "SystemAssigned" }
 

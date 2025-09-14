@@ -93,7 +93,7 @@ resource "azapi_resource" "container_app_auth_config" {
           registration = merge({
             openIdIssuer = "https://login.microsoftonline.com/${data.azurerm_client_config.current.tenant_id}/v2.0"
             clientId     = local.auth_client_id
-          }, var.create_app_registration ? {} : (
+            }, var.create_app_registration ? {} : (
             var.existing_app_registration_client_secret != "" ? {
               clientSecretSettingName = "MICROSOFT_PROVIDER_AUTHENTICATION_SECRET"
             } : {}

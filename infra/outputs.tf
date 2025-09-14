@@ -37,10 +37,28 @@ output "search_service_name" { value = azurerm_search_service.main.name }
 output "private_endpoints_enabled" { value = var.enable_private_endpoints }
 output "vnet_id" { value = var.enable_private_endpoints ? azurerm_virtual_network.main[0].id : null }
 output "private_endpoint_subnet_id" { value = var.enable_private_endpoints ? azurerm_subnet.private_endpoints[0].id : null }
-output "ai_foundry_private_endpoint_ip" { value = var.enable_private_endpoints && var.enable_ai_foundry ? azurerm_private_endpoint.ai_foundry[0].private_service_connection[0].private_ip_address : null }
-output "search_private_endpoint_ip" { value = var.enable_private_endpoints ? azurerm_private_endpoint.search[0].private_service_connection[0].private_ip_address : null }
-output "acr_private_endpoint_ip" { value = var.enable_private_endpoints ? azurerm_private_endpoint.acr[0].private_service_connection[0].private_ip_address : null }
-output "ai_services_private_endpoint_ip" { value = var.enable_private_endpoints && var.enable_ai_foundry ? azurerm_private_endpoint.ai_services[0].private_service_connection[0].private_ip_address : null }
+output "ai_foundry_private_endpoint_ip" {
+  value = var.enable_private_endpoints && var.enable_ai_foundry && module.private_link_ai_foundry.created ? try(module.private_link_ai_foundry.private_endpoint_ips["hub"], null) : null
+}
+output "ai_services_private_endpoint_ip" {
+  value = var.enable_private_endpoints && var.enable_ai_foundry && module.private_link_ai_services.created ? try(module.private_link_ai_services.private_endpoint_ips["openai"], null) : null
+}
+output "search_private_endpoint_ip" {
+  value = var.enable_private_endpoints && module.private_link_search.created ? try(module.private_link_search.private_endpoint_ips["search"], null) : null
+}
+output "acr_private_endpoint_ip" {
+  value = var.enable_private_endpoints && module.private_link_acr.created ? try(module.private_link_acr.private_endpoint_ips["acr"], null) : null
+}
+
+output "private_endpoints_all" {
+  description = "Flattened list of all private endpoints created across modules"
+  value = var.enable_private_endpoints ? concat(
+    module.private_link_ai_foundry.created ? [for k, v in module.private_link_ai_foundry.private_endpoints : merge(v, { service_group = "ai_foundry", key = k })] : [],
+    module.private_link_ai_services.created ? [for k, v in module.private_link_ai_services.private_endpoints : merge(v, { service_group = "ai_services", key = k })] : [],
+    module.private_link_search.created ? [for k, v in module.private_link_search.private_endpoints : merge(v, { service_group = "search", key = k })] : [],
+    module.private_link_acr.created ? [for k, v in module.private_link_acr.private_endpoints : merge(v, { service_group = "acr", key = k })] : []
+  ) : []
+}
 
 ############################
 # Container Apps

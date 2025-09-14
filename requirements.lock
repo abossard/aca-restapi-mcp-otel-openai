@@ -15,7 +15,6 @@ azure-monitor-opentelemetry==1.6.7
 python-dotenv==1.1.1
 structlog==25.4.0
 httpx==0.28.1
-# Transitives (captured for reproducibility)
 annotated-types==0.7.0
 anyio==4.10.0
 asgiref==3.9.1

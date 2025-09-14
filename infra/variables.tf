@@ -62,6 +62,12 @@ variable "container_app_port" {
   default     = 80
 }
 
+variable "container_app_public" {
+  description = "Expose the Container App publicly via external ingress. If false, ingress is internal-only."
+  type        = bool
+  default     = true
+}
+
 variable "enable_container_apps_managed_otel" {
   description = "Enable Managed OpenTelemetry agent in the Container App Environment exporting traces and logs to Application Insights"
   type        = bool

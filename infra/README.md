@@ -33,3 +33,19 @@ This directory was refactored from a single `main.tf` into multiple concern-focu
 - Introduce `tflint` / `terraform validate` in CI.
 - Use Key Vault secrets for sensitive env values when added.
 - Consider module extraction only if reuse across stacks emerges.
+
+## Variables (Key)
+- `location` – Azure region
+- `resource_group_name` – Resource group name
+- `project_name` – Naming prefix
+- `environment` – Environment name (dev/staging/prod)
+- `tags` – Common resource tags
+- `enable_private_endpoints` – Toggle private endpoints
+- `enable_ai_foundry` – Use Azure AI Foundry workspace + project (instead of standalone OpenAI)
+- `enable_container_app_auth` – Enable Container App authentication config
+- `container_app_port` – Container port exposed through ingress
+- `container_app_public` – NEW: When true (default) ingress is public (external). Set false for internal-only (no public endpoint)
+- `enable_container_apps_managed_otel` – Enable Managed OpenTelemetry collector
+- `container_app_auth_require_authentication` – Force auth for all routes
+- `container_app_auth_unauthenticated_action` – RedirectToLoginPage | AllowAnonymous
+- `container_app_auth_allowed_audiences` – Optional extra allowed audiences

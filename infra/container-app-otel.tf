@@ -19,11 +19,11 @@ resource "azapi_update_resource" "container_app_env_otel" {
   type        = "Microsoft.App/managedEnvironments@2024-10-02-preview"
   resource_id = azurerm_container_app_environment.main.id
 
-  # Ensure environment and App Insights exist first
-  depends_on = [
-    azurerm_container_app_environment.main,
-    azurerm_application_insights.main
-  ]
+  # Explicit depends_on removed: implicit dependencies established via
+  #  - resource_id (container app environment)
+  #  - references to azurerm_application_insights.main.connection_string
+  #  - references to azurerm_log_analytics_workspace.main workspace id & key
+  # Reintroduce only if apply ordering/race issues emerge.
 
   body = jsonencode({
     properties = {
@@ -33,7 +33,7 @@ resource "azapi_update_resource" "container_app_env_otel" {
       # because the patch appears to expect the existing appLogsConfiguration block when one
       # is already configured on the environment (it was originally set via the azurerm resource).
       appLogsConfiguration = {
-        destination              = "log-analytics"
+        destination = "log-analytics"
         logAnalyticsConfiguration = {
           customerId = azurerm_log_analytics_workspace.main.workspace_id
           sharedKey  = azurerm_log_analytics_workspace.main.primary_shared_key
