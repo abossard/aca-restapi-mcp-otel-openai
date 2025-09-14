@@ -29,6 +29,51 @@ The solution consists of several key components:
 - **OpenTelemetry**: Distributed tracing and metrics collection
 - **DataDog**: External monitoring and alerting platform
 
+### Telemetry Modes
+This project supports two mutually exclusive telemetry initialization paths:
+
+1. Azure Monitor OpenTelemetry Distro (preferred when `APPLICATIONINSIGHTS_CONNECTION_STRING` is set)
+  - Activated automatically when the env var `APPLICATIONINSIGHTS_CONNECTION_STRING` is present.
+  - Uses `azure-monitor-opentelemetry` to configure exporters (traces/logs/metrics as supported) and default instrumentation (FastAPI, requests, etc.).
+  - Resource attributes can be extended via `OTEL_RESOURCE_ATTRIBUTES` and `OTEL_SERVICE_NAME`.
+  - Disable a built-in instrumentation via `OTEL_PYTHON_DISABLED_INSTRUMENTATIONS` (comma-separated names, e.g. `fastapi,requests`).
+
+2. Manual OTLP exporter fallback (no App Insights connection string)
+  - Endpoint resolution precedence:
+    1. `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`
+    2. `OTEL_EXPORTER_OTLP_ENDPOINT`
+    3. `CONTAINERAPP_OTEL_TRACING_GRPC_ENDPOINT` (injected by Azure Container Apps managed OpenTelemetry agent)
+    4. Default: `http://localhost:4317`
+  - Protocol expected: gRPC (`OTEL_EXPORTER_OTLP_PROTOCOL=grpc`). Non‑gRPC values log a warning.
+  - FastAPI + requests are explicitly instrumented in code.
+
+Avoid Double Instrumentation:
+- Do not manually add extra exporters when the Azure Monitor distro path is active.
+- To force OTLP-only mode, omit `APPLICATIONINSIGHTS_CONNECTION_STRING` from the container environment.
+
+Environment Variables Summary:
+- `APPLICATIONINSIGHTS_CONNECTION_STRING`: Activates Azure Monitor distro.
+- `OTEL_SERVICE_NAME`, `OTEL_SERVICE_VERSION`: Override service identity (else defaults applied in code/Terraform).
+- `OTEL_RESOURCE_ATTRIBUTES`: Additional resource attributes (e.g. `deployment.environment=dev`).
+- `OTEL_EXPORTER_OTLP_(TRACES_)ENDPOINT`: Custom OTLP targets in fallback mode.
+- `OTEL_PYTHON_DISABLED_INSTRUMENTATIONS`: Comma list to disable instrumentations in distro mode.
+
+Terraform Injection:
+- Terraform sets `APPLICATIONINSIGHTS_CONNECTION_STRING` on the Container App; unset it to test pure OTLP path locally.
+
+Local Dev Tips:
+```bash
+# Run with App Insights disabled (manual OTLP -> local collector)
+unset APPLICATIONINSIGHTS_CONNECTION_STRING
+export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
+uvicorn src.aiapi.server:app --reload
+
+# Run with Azure Monitor distro
+export APPLICATIONINSIGHTS_CONNECTION_STRING="InstrumentationKey=...;IngestionEndpoint=..."
+uvicorn src.aiapi.server:app --reload
+```
+
+
 ### Pricing & Scale
 - **Scale**: 0-1 instances with idle pricing
 - **User Base**: Designed for 10-20 potential users
@@ -230,7 +275,9 @@ The infrastructure is **deployment-ready** with the following components configu
    ```bash
    python -m venv venv
    source venv/bin/activate  # On Windows: venv\Scripts\activate
-   pip install -r requirements.txt
+  pip install -r requirements.txt  # intentionally unpinned to fetch latest versions
+  # (Optional) lock the resolved versions for deterministic builds
+  pip freeze > requirements.lock
    ```
 
 3. **Configure environment variables**
@@ -352,6 +399,7 @@ When private endpoints are enabled, the following additional resources are creat
 - **Updates**: Scheduled maintenance windows for updates and patches
 - **Backup**: Automated backup of configuration and data
 - **Documentation**: Keep operational runbooks up to date
+- **Dependency Management**: `requirements.txt` is unpinned by design; generate `requirements.lock` via `pip freeze` (or use pip-tools) to pin for production. Keep OpenTelemetry package versions aligned.
 
 ## Contributing
 

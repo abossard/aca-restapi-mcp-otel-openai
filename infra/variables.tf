@@ -68,6 +68,7 @@ variable "enable_container_apps_managed_otel" {
   default     = true
 }
 
+
 variable "container_app_auth_require_authentication" {
   description = "Whether to require authentication globally (Redirect unauthenticated users)."
   type        = bool

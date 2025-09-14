@@ -17,3 +17,9 @@ resource "azurerm_application_insights" "main" {
   local_authentication_disabled = true
   tags                = var.tags
 }
+
+# NOTE:
+# The connection string is injected into the container app as the environment variable
+#   APPLICATIONINSIGHTS_CONNECTION_STRING (standard name expected by Azure Monitor OTel Distro)
+# Application code uses the distro when this variable is set; otherwise it falls back to manual OTLP export.
+# To force manual OTLP export only, omit the variable from the container definition.

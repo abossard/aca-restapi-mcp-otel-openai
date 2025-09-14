@@ -1,0 +1,14 @@
+name: aca-restapi-mcp-otel-openai
+metadata:
+  template: aca-restapi-mcp-otel-openai@0.0.1-beta
+
+infra:
+  provider: terraform
+
+services:
+  api:
+    project: .
+    language: python
+    host: containerapp
+    docker:
+      path: ./Dockerfile

@@ -7,6 +7,7 @@ with comprehensive observability through OpenTelemetry.
 
 import os
 import structlog
+from azure.monitor.opentelemetry import configure_azure_monitor
 from contextlib import asynccontextmanager
 from typing import Dict, List, Optional
 
@@ -46,25 +47,62 @@ structlog.configure(
 
 logger = structlog.get_logger(__name__)
 
-# OpenTelemetry setup
+def _resolve_otlp_traces_endpoint() -> str:
+    """Resolve the OTLP traces endpoint using a precedence order.
+
+    Precedence (first non-empty wins):
+      1. OTEL_EXPORTER_OTLP_TRACES_ENDPOINT (standard per-signal var)
+      2. OTEL_EXPORTER_OTLP_ENDPOINT (standard base var – injected by ACA managed OTEL agent)
+      3. CONTAINERAPP_OTEL_TRACING_GRPC_ENDPOINT (ACA specific per-signal injection)
+      4. Fallback local dev default 'http://localhost:4317'
+
+    Notes:
+    - ACA managed OpenTelemetry agent auto-injects the standard variables (docs: https://learn.microsoft.com/azure/container-apps/opentelemetry-agents)
+    - Managed agent currently supports only gRPC transport.
+    """
+    candidates = [
+        os.getenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"),
+        os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT"),
+        # Normalize potential trailing path if someone passes /v1/traces/ style endpoint; the OTLP gRPC exporter expects host[:port]
+        (lambda v: v.rstrip('/') if v else v)(os.getenv("CONTAINERAPP_OTEL_TRACING_GRPC_ENDPOINT")),
+    ]
+    for c in candidates:
+        if c:  # first non-empty
+            return c
+    return "http://localhost:4317"
+
+
 def setup_telemetry():
-    """Configure OpenTelemetry tracing."""
+    """Configure OpenTelemetry tracing.
+
+    Logic:
+      - If Application Insights connection string present, use Azure Monitor distro (adds AI exporters + default instr).
+      - Otherwise fall back to manual OTLP exporter with endpoint resolution.
+    """
+    ai_conn = os.getenv("APPLICATIONINSIGHTS_CONNECTION_STRING")
+
+    if ai_conn:
+        # Azure Monitor OpenTelemetry Distro handles tracer provider + instrumentation.
+        configure_azure_monitor(connection_string=ai_conn)
+        tracer = trace.get_tracer(__name__)
+        logger.info("Telemetry initialized via Azure Monitor OpenTelemetry Distro")
+        return tracer
+
+    # Manual OTLP exporter path
     resource = Resource.create({
-        "service.name": "aca-restapi-mcp-otel-openai",
-        "service.version": "1.0.0",
+        "service.name": os.getenv("OTEL_SERVICE_NAME", "aca-restapi-mcp-otel-openai"),
+        "service.version": os.getenv("OTEL_SERVICE_VERSION", "1.0.0"),
     })
-    
     trace.set_tracer_provider(TracerProvider(resource=resource))
     tracer = trace.get_tracer(__name__)
-    
-    # OTLP exporter for Application Insights
-    otlp_exporter = OTLPSpanExporter(
-        endpoint=os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317")
-    )
-    
+    endpoint = _resolve_otlp_traces_endpoint()
+    protocol = os.getenv("OTEL_EXPORTER_OTLP_PROTOCOL", "grpc")
+    if protocol.lower() != "grpc":
+        logger.warning("Non-gRPC OTLP protocol configured; ACA managed agent supports only gRPC", protocol=protocol)
+    otlp_exporter = OTLPSpanExporter(endpoint=endpoint)
     span_processor = BatchSpanProcessor(otlp_exporter)
     trace.get_tracer_provider().add_span_processor(span_processor)
-    
+    logger.info("Telemetry initialized via manual OTLP exporter", otlp_endpoint=endpoint, protocol=protocol)
     return tracer
 
 # Initialize tracer

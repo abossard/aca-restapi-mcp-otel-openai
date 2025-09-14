@@ -57,9 +57,9 @@ resource "azurerm_container_app" "main" {
         name  = "AZURE_SEARCH_SERVICE_NAME" 
         value = azurerm_search_service.main.name 
       }
-      env { 
-        name  = "AZURE_APPLICATIONINSIGHTS_CONNECTION_STRING" 
-        value = azurerm_application_insights.main.connection_string 
+      env {
+        name  = "APPLICATIONINSIGHTS_CONNECTION_STRING"
+        value = azurerm_application_insights.main.connection_string
       }
       env { 
         name  = "AZURE_KEY_VAULT_URL" 
