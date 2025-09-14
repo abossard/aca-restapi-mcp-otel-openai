@@ -6,5 +6,13 @@ resource "azurerm_container_registry" "main" {
   sku                           = "Basic"
   admin_enabled                 = false # disable admin (username/password) access; use managed identity / AAD tokens
   public_network_access_enabled = var.enable_private_endpoints ? false : true
-  tags                          = var.tags
+  # Include azd-service-name to optionally help azd associate build output (not required, but consistent)
+  tags = merge(var.tags, { "azd-service-name" = "api" })
+}
+
+# Allow the workload user-assigned identity to pull from ACR (AcrPull role)
+resource "azurerm_role_assignment" "workload_identity_acr_pull" {
+  scope                = azurerm_container_registry.main.id
+  role_definition_name = "AcrPull"
+  principal_id         = azurerm_user_assigned_identity.main.principal_id
 }

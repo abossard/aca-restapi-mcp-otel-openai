@@ -23,8 +23,10 @@ resource "azurerm_container_app" "main" {
     max_replicas = 1
 
     container {
-      name   = "api"
-      image  = "mcr.microsoft.com/azuredocs/containerapps-helloworld:latest" # TODO: replace with built image
+      name = "api"
+      # Use image from our Azure Container Registry (build & push separately)
+      # Expected prior build/push: az acr build/push -> <acr>.azurecr.io/api:latest
+      image  = "${azurerm_container_registry.main.login_server}/api:latest"
       cpu    = 0.25
       memory = "0.5Gi"
 
@@ -125,8 +127,8 @@ resource "azurerm_container_app" "main" {
   ingress {
     allow_insecure_connections = false
     # Controlled by variable to allow private (internal) only exposure when set to false
-    external_enabled           = var.container_app_public
-    target_port                = var.container_app_port
+    external_enabled = var.container_app_public
+    target_port      = var.container_app_port
 
     traffic_weight {
       percentage      = 100
@@ -134,7 +136,10 @@ resource "azurerm_container_app" "main" {
     }
   }
 
-  tags = var.tags
+  # Add azd-service-name so Azure Developer CLI (azd) can map this Container App to the 'api' service in azure.yaml
+  tags = merge(var.tags, {
+    "azd-service-name" = "api"
+  })
 
   # Retain depends_on if RBAC timing issues appear; removed for now to rely on implicit graph.
 }
