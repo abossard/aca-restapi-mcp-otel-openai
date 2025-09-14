@@ -6,6 +6,10 @@ project_name                      = "aca-restapi"
 resource_group_name               = "rg-aca-restapi"
 environment                       = "dev"
 
+# Required selections (added):
+container_registry_sku            = "Basic"          # or Standard | Premium
+ai_model_set                      = "minimal"        # or full
+
 # Feature toggles
 enable_private_endpoints          = false
 enable_ai_foundry                 = true

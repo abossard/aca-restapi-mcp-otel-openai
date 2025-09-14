@@ -37,9 +37,8 @@ variable "tags" {
 
 # Container Registry SKU (Basic, Standard, Premium). Premium required to fully disable public network access.
 variable "container_registry_sku" {
-  description = "SKU for Azure Container Registry (Basic, Standard, Premium). Premium required for private network-only access."
+  description = "SKU for Azure Container Registry (Basic, Standard, Premium). Required. Premium required for private network-only access."
   type        = string
-  default     = "Basic"
   validation {
     condition     = contains(["Basic", "Standard", "Premium"], var.container_registry_sku)
     error_message = "container_registry_sku must be one of Basic, Standard, Premium"
@@ -59,6 +58,16 @@ variable "enable_ai_foundry" {
   description = "Enable Azure AI Foundry workspace instead of standalone OpenAI"
   type        = bool
   default     = true
+}
+
+# Select AI model set: "minimal" deploys gpt-4o only, "full" deploys gpt-4o and gpt-4o-mini. Required (no default) to force explicit choice.
+variable "ai_model_set" {
+  description = "AI model set selection: minimal | full"
+  type        = string
+  validation {
+    condition     = contains(["minimal", "full"], var.ai_model_set)
+    error_message = "ai_model_set must be one of: minimal, full"
+  }
 }
 
 variable "enable_container_app_auth" {

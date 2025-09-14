@@ -35,7 +35,7 @@ resource "azurerm_cognitive_deployment" "gpt4o" {
 }
 
 resource "azurerm_cognitive_deployment" "gpt4o_mini" {
-  count                = var.enable_ai_foundry ? 1 : 0
+  count                = var.enable_ai_foundry && var.ai_model_set == "full" ? 1 : 0
   name                 = "gpt-4o-mini"
   cognitive_account_id = azurerm_cognitive_account.ai_services[0].id
 
