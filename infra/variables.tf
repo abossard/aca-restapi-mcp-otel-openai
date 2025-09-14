@@ -35,6 +35,17 @@ variable "tags" {
   }
 }
 
+# Container Registry SKU (Basic, Standard, Premium). Premium required to fully disable public network access.
+variable "container_registry_sku" {
+  description = "SKU for Azure Container Registry (Basic, Standard, Premium). Premium required for private network-only access."
+  type        = string
+  default     = "Basic"
+  validation {
+    condition     = contains(["Basic", "Standard", "Premium"], var.container_registry_sku)
+    error_message = "container_registry_sku must be one of Basic, Standard, Premium"
+  }
+}
+
 ############################
 # Feature Toggles
 ############################
