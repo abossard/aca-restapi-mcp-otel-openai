@@ -24,9 +24,8 @@ resource "azurerm_container_app" "main" {
 
     container {
       name = "api"
-      # Use image from our Azure Container Registry (build & push separately)
-      # Expected prior build/push: az acr build/push -> <acr>.azurecr.io/api:latest
-      image  = "${azurerm_container_registry.main.login_server}/api:latest"
+  # Image selection: use ACR image if toggle enabled, else fallback public sample
+  image = var.use_acr_image ? "${azurerm_container_registry.main.login_server}/api:latest" : "mcr.microsoft.com/azuredocs/containerapps-helloworld:latest"
       cpu    = 0.25
       memory = "0.5Gi"
 

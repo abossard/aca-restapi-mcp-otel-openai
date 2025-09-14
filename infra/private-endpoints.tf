@@ -22,7 +22,8 @@ module "private_link_ai_foundry" {
 
 module "private_link_ai_services" {
   source              = "./modules/private_link"
-  enable              = var.enable_private_endpoints && var.enable_ai_foundry
+  # Require subdomain to be set before attempting private endpoint for Cognitive Services
+  enable              = var.enable_private_endpoints && var.enable_ai_foundry && var.cognitive_services_custom_subdomain != ""
   name_prefix         = "${var.project_name}-aiservices"
   environment         = var.environment
   resource_group_name = azurerm_resource_group.main.name
@@ -58,7 +59,8 @@ module "private_link_search" {
 
 module "private_link_acr" {
   source              = "./modules/private_link"
-  enable              = var.enable_private_endpoints
+  # ACR private endpoints require Premium SKU
+  enable              = var.enable_private_endpoints && var.container_registry_sku == "Premium"
   name_prefix         = "${var.project_name}-acr"
   environment         = var.environment
   resource_group_name = azurerm_resource_group.main.name

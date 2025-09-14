@@ -160,3 +160,17 @@ variable "local_dev_rbac" {
   type        = bool
   default     = false
 }
+
+# Optional custom subdomain for Cognitive Services (required for private endpoint)
+variable "cognitive_services_custom_subdomain" {
+  description = "Custom subdomain name for the Cognitive (OpenAI) account (required for private endpoint enablement). Leave blank to skip and keep public access until ready. Must be globally unique, lowercase, alphanumeric/dash."
+  type        = string
+  default     = ""
+}
+
+# Toggle whether to use ACR image (true) or fallback demo public image (false)
+variable "use_acr_image" {
+  description = "If true, container app uses image from ACR (requires image pushed). If false, uses public sample image."
+  type        = bool
+  default     = true
+}
