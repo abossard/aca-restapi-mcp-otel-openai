@@ -174,3 +174,10 @@ variable "use_acr_image" {
   type        = bool
   default     = true
 }
+
+# Allow forcing deletion of resource group even if Azure still reports nested resources (use with caution)
+variable "allow_force_resource_group_delete" {
+  description = "If true, sets azurerm provider feature to allow deleting resource groups even when resources remain (prevent_deletion_if_contains_resources=false). Use only for cleanup workflows."
+  type        = bool
+  default     = true
+}

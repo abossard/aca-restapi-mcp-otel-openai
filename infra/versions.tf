@@ -22,6 +22,9 @@ terraform {
 
 provider "azurerm" {
   features {
+    resource_group {
+      prevent_deletion_if_contains_resources = var.allow_force_resource_group_delete ? false : true
+    }
   }
   storage_use_azuread = true
 }
