@@ -51,7 +51,6 @@ variable "container_registry_sku" {
 variable "enable_private_endpoints" {
   description = "Enable private endpoints for Azure services"
   type        = bool
-  default     = false
 }
 
 variable "enable_ai_foundry" {
@@ -68,6 +67,7 @@ variable "ai_model_set" {
     condition     = contains(["minimal", "full"], var.ai_model_set)
     error_message = "ai_model_set must be one of: minimal, full"
   }
+  default = "full"
 }
 
 variable "enable_container_app_auth" {
