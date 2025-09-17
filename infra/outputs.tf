@@ -8,6 +8,7 @@ output "application_insights_connection_string" {
   sensitive = true
 }
 output "container_registry_login_server" { value = azurerm_container_registry.main.login_server }
+output "CONTAINER_REGISTRY_LOGIN_SERVER" { value = azurerm_container_registry.main.login_server }
 output "container_registry_admin_username" { value = azurerm_container_registry.main.admin_username }
 output "managed_identity_client_id" { value = azurerm_user_assigned_identity.main.client_id }
 
@@ -100,3 +101,4 @@ output "container_app_auth_config_id" {
   description = "Resource ID of the container app auth configuration (if managed in Terraform)"
   value       = var.enable_container_app_auth && length(azapi_resource.container_app_auth_config) > 0 ? azapi_resource.container_app_auth_config[0].id : null
 }
+

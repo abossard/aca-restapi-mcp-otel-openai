@@ -12,4 +12,10 @@ services:
     host: containerapp
     docker:
       path: ./Dockerfile
-      remoteBuild: true
+      registry: ${CONTAINER_REGISTRY_LOGIN_SERVER}
+
+hooks:
+  preprovision:
+    - run: ./scripts/preprovision-sync-env-name.sh
+  postdeploy:
+    - run: ./scripts/postdeploy-update-container-image.sh

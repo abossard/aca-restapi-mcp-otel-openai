@@ -3,12 +3,12 @@ resource "azurerm_key_vault" "main" {
   count = var.enable_ai_foundry ? 1 : 0
   # Key Vault name constraints: 3-24 chars, alphanumeric and dashes only. Remove dashes from project base, append -kv plus suffix.
   # Example result: acarestapimcp-kvabc123xy (<=24).
-  name                       = substr(replace(var.project_name, "-", ""), 0, 16) == replace(var.project_name, "-", "") ? "${substr(replace(var.project_name, "-", ""), 0, 16)}-kv${substr(random_string.unique.result, 0, 2)}" : "${substr(replace(var.project_name, "-", ""), 0, 16)}-kv${substr(random_string.unique.result, 0, 2)}"
+  name                       = substr(replace(var.project_name, "-", ""), 0, 16) == replace(var.project_name, "-", "") ? "${substr(replace(var.project_name, "-", ""), 0, 16)}-kv${substr(random_string.unique.result, 0, 3)}" : "${substr(replace(var.project_name, "-", ""), 0, 16)}-kv${substr(random_string.unique.result, 0, 2)}"
   location                   = azurerm_resource_group.main.location
   resource_group_name        = azurerm_resource_group.main.name
   tenant_id                  = data.azurerm_client_config.current.tenant_id
   sku_name                   = "standard"
-  purge_protection_enabled   = true
+  purge_protection_enabled   = false
   soft_delete_retention_days = 7
 
   # Switch to RBAC-only (no access policy) for principle of least privilege; access via role assignments.

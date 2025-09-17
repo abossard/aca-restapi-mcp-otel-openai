@@ -1,4 +1,18 @@
 # Container App
+
+locals {
+  container_image_revision_trimmed = trimspace(var.container_image_revision)
+  container_image_has_registry     = local.container_image_revision_trimmed != "" && can(regex("/", local.container_image_revision_trimmed))
+  resolved_acr_image_reference = local.container_image_revision_trimmed == "" ? "" : (
+    local.container_image_has_registry
+    ? local.container_image_revision_trimmed
+    : format("%s/%s", azurerm_container_registry.main.login_server, local.container_image_revision_trimmed)
+  )
+  using_acr_image           = var.use_acr_image && local.resolved_acr_image_reference != ""
+  fallback_container_image  = "mcr.microsoft.com/azuredocs/containerapps-helloworld:latest"
+  effective_container_image = local.using_acr_image ? local.resolved_acr_image_reference : local.fallback_container_image
+}
+
 resource "azurerm_container_app" "main" {
   name                         = "${var.project_name}-ca-${var.environment}"
   container_app_environment_id = azurerm_container_app_environment.main.id
@@ -8,6 +22,16 @@ resource "azurerm_container_app" "main" {
   identity {
     type         = "UserAssigned"
     identity_ids = [azurerm_user_assigned_identity.main.id]
+  }
+
+  # Container Registry authentication via User Assigned Managed Identity
+  # Without this block the revision will fail to pull images from ACR (UNAUTHORIZED) when admin user/password is disabled.
+  dynamic "registry" {
+    for_each = local.using_acr_image ? [1] : []
+    content {
+      server   = azurerm_container_registry.main.login_server
+      identity = azurerm_user_assigned_identity.main.id
+    }
   }
 
   dynamic "secret" {
@@ -24,8 +48,8 @@ resource "azurerm_container_app" "main" {
 
     container {
       name = "api"
-  # Image selection: use ACR image if toggle enabled, else fallback public sample
-  image = var.use_acr_image ? "${azurerm_container_registry.main.login_server}/api:latest" : "mcr.microsoft.com/azuredocs/containerapps-helloworld:latest"
+      # Automatically use the ACR image only when a revision reference is supplied via env/variable
+      image  = local.effective_container_image
       cpu    = 0.25
       memory = "0.5Gi"
 

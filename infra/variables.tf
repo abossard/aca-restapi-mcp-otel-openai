@@ -8,9 +8,9 @@ variable "location" {
 }
 
 variable "resource_group_name" {
-  description = "Name of the resource group"
+  description = "Name of the resource group. Leave blank to derive rg-<project_name>-<environment>."
   type        = string
-  default     = "rg-aca-restapi-mcp-otel"
+  default     = ""
 }
 
 variable "project_name" {
@@ -177,9 +177,17 @@ variable "cognitive_services_custom_subdomain" {
   default     = ""
 }
 
-# Toggle whether to use ACR image (true) or fallback demo public image (false)
+# Optional full or partial image reference (e.g. api@sha256:..., api:<tag>, or registry.azurecr.io/api@sha256:...)
+# Provide via TF_VAR_container_image_revision or `azd env set CONTAINER_IMAGE_REVISION <value>`.
+variable "container_image_revision" {
+  description = "Optional container image reference (digest or tag). When empty the Container App keeps using the sample public image so the initial apply succeeds."
+  type        = string
+  default     = ""
+}
+
+# Toggle whether to prefer the ACR image (automatically gated on container_image_revision)
 variable "use_acr_image" {
-  description = "If true, container app uses image from ACR (requires image pushed). If false, uses public sample image."
+  description = "If true and container_image_revision is provided, the Container App uses the ACR image. Otherwise it falls back to the public sample image."
   type        = bool
   default     = true
 }
