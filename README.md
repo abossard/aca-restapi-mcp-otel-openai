@@ -193,6 +193,11 @@ azd env set KEY value
 azd env select environment-name
 ```
 
+### Container Image Promotion Flow
+- **Bootstrap**: Terraform deploys the Container App with the public sample image so the first `azd provision` succeeds even before the project image exists (`infra/container-app.tf`).
+- **Post-deploy sync**: After the first `azd deploy`, Azure Developer CLI emits `SERVICE_API_IMAGE_NAME`/`SERVICE_API_RESOURCE_EXISTS`; the hook at `scripts/postdeploy-update-container-image.sh` copies the baked image reference into `CONTAINER_IMAGE_REVISION` and `TF_VAR_container_image_revision`.
+- **Subsequent runs**: Terraform reads `var.container_image_revision` (see `infra/variables.tf`) and automatically swaps the Container App to your registry image on later `azd up`/`azd provision` executions—no manual edits required.
+
 ### Traditional Terraform
 ```bash
 cd infra

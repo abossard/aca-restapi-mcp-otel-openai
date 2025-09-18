@@ -13,6 +13,7 @@ from typing import Dict, List, Optional
 
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.docs import get_swagger_ui_html
 from pydantic import BaseModel, Field
 from azure.identity import DefaultAzureCredential
 from azure.search.documents.aio import SearchClient
@@ -159,7 +160,9 @@ app = FastAPI(
     title="AI-Enhanced REST API",
     description="REST API with Azure OpenAI and AI Search integration",
     version="1.0.0",
-    lifespan=lifespan
+    lifespan=lifespan,
+    docs_url=None,
+    redoc_url=None,
 )
 
 # CORS middleware
@@ -194,6 +197,19 @@ class AIResponse(BaseModel):
 class HealthResponse(BaseModel):
     status: str
     services: Dict[str, bool]
+
+# Custom interactive documentation endpoint using Swagger UI
+@app.get("/api-explorer", include_in_schema=False)
+async def custom_swagger_ui():
+    return get_swagger_ui_html(
+        openapi_url=app.openapi_url,
+        title=f"{app.title} - API Explorer",
+        swagger_ui_parameters={
+            "displayRequestDuration": True,
+            "filter": True,
+        },
+    )
+
 
 # Dependencies
 async def get_openai_client() -> AsyncAzureOpenAI:
