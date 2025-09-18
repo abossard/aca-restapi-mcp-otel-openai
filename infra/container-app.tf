@@ -83,12 +83,16 @@ resource "azurerm_container_app" "main" {
         value = "https://${azurerm_search_service.main.name}.search.windows.net"
       }
       env {
+        name  = "AZURE_SEARCH_ENDPOINT"
+        value = "https://${azurerm_search_service.main.name}.search.windows.net"
+      }
+      env {
         name  = "AZURE_SEARCH_SERVICE_NAME"
         value = azurerm_search_service.main.name
       }
       env {
-        name  = "APPLICATIONINSIGHTS_CONNECTION_STRING"
-        value = azurerm_application_insights.main.connection_string
+        name  = "AZURE_SEARCH_INDEX"
+        value = var.search_index_name
       }
       env {
         name  = "AZURE_KEY_VAULT_URL"
@@ -102,18 +106,6 @@ resource "azurerm_container_app" "main" {
       env {
         name  = "PROJECT_NAME"
         value = var.project_name
-      }
-      env {
-        name  = "OTEL_SERVICE_NAME"
-        value = "${var.project_name}-api"
-      }
-      env {
-        name  = "OTEL_SERVICE_VERSION"
-        value = "1.0.0"
-      }
-      env {
-        name  = "OTEL_RESOURCE_ATTRIBUTES"
-        value = "service.name=${var.project_name}-api,service.version=1.0.0,deployment.environment=${var.environment}"
       }
       env {
         name  = "PYTHONUNBUFFERED"

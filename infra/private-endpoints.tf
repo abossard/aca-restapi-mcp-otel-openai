@@ -21,7 +21,7 @@ module "private_link_ai_foundry" {
 }
 
 module "private_link_ai_services" {
-  source              = "./modules/private_link"
+  source = "./modules/private_link"
   # Require subdomain to be set before attempting private endpoint for Cognitive Services
   enable              = var.enable_private_endpoints && var.enable_ai_foundry && var.cognitive_services_custom_subdomain != ""
   name_prefix         = "${var.project_name}-aiservices"
@@ -58,7 +58,7 @@ module "private_link_search" {
 }
 
 module "private_link_acr" {
-  source              = "./modules/private_link"
+  source = "./modules/private_link"
   # ACR private endpoints require Premium SKU
   enable              = var.enable_private_endpoints && var.container_registry_sku == "Premium"
   name_prefix         = "${var.project_name}-acr"

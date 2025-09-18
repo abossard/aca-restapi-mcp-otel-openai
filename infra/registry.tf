@@ -10,7 +10,7 @@ resource "azurerm_container_registry" "main" {
   public_network_access_enabled = true
   # Include azd-service-name to optionally help azd associate build output (not required, but consistent)
   tags = merge(var.tags, {
-    "azd-env-name"    = var.environment
+    "azd-env-name" = var.environment
   })
 }
 

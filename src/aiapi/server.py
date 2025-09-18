@@ -49,6 +49,13 @@ structlog.configure(
 
 logger = structlog.get_logger(__name__)
 
+
+def _is_truthy(value: Optional[str]) -> bool:
+    """Return True when the string is set to a common truthy value."""
+    if value is None:
+        return False
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
 def _resolve_otlp_traces_endpoint() -> str:
     """Resolve the OTLP traces endpoint using a precedence order.
 
@@ -107,8 +114,13 @@ def setup_telemetry():
     logger.info("Telemetry initialized via manual OTLP exporter", otlp_endpoint=endpoint, protocol=protocol)
     return tracer
 
-# Initialize tracer
-tracer = setup_telemetry()
+# Initialize tracer only when explicitly enabled
+_enable_otel = _is_truthy(os.getenv("ENABLE_OTEL"))
+if _enable_otel:
+    tracer = setup_telemetry()
+else:
+    tracer = trace.get_tracer(__name__)
+    logger.info("OpenTelemetry disabled", enable_otel=os.getenv("ENABLE_OTEL"))
 
 # Application state
 class AppState:
@@ -175,9 +187,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Instrument FastAPI with OpenTelemetry
-FastAPIInstrumentor.instrument_app(app)
-RequestsInstrumentor().instrument()
+# Instrument FastAPI with OpenTelemetry only when enabled
+if _enable_otel:
+    FastAPIInstrumentor.instrument_app(app)
+    RequestsInstrumentor().instrument()
 
 # Pydantic models
 class QueryRequest(BaseModel):

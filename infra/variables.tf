@@ -89,10 +89,16 @@ variable "container_app_public" {
   default     = true
 }
 
+variable "search_index_name" {
+  description = "Name of the Azure AI Search index used by the application"
+  type        = string
+  default     = "documents"
+}
+
 variable "enable_container_apps_managed_otel" {
   description = "Enable Managed OpenTelemetry agent in the Container App Environment exporting traces and logs to Application Insights"
   type        = bool
-  default     = true
+  default     = false
 }
 
 
