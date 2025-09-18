@@ -6,7 +6,8 @@ resource "azurerm_container_registry" "main" {
   sku                 = var.container_registry_sku
   admin_enabled       = false # disable admin (username/password) access; use managed identity / AAD tokens
   # Only disable public network access when both private endpoints enabled AND Premium sku (requirement)
-  public_network_access_enabled = var.enable_private_endpoints && var.container_registry_sku == "Premium" ? false : true
+  # Always keep public network access enabled so local tooling (azd deploy) can reach the registry without private networking.
+  public_network_access_enabled = true
   # Include azd-service-name to optionally help azd associate build output (not required, but consistent)
   tags = merge(var.tags, {
     "azd-env-name"    = var.environment

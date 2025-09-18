@@ -27,7 +27,7 @@ resource "azurerm_container_app" "main" {
   # Container Registry authentication via User Assigned Managed Identity
   # Without this block the revision will fail to pull images from ACR (UNAUTHORIZED) when admin user/password is disabled.
   dynamic "registry" {
-    for_each = local.using_acr_image ? [1] : []
+    for_each = var.use_acr_image ? [1] : []
     content {
       server   = azurerm_container_registry.main.login_server
       identity = azurerm_user_assigned_identity.main.id

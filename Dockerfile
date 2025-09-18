@@ -33,12 +33,12 @@ COPY src/ ./src/
 RUN chown -R appuser:appuser /app
 USER appuser
 
-# Expose the port
+# Expose the default development port
 EXPOSE 8000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD python -c "import requests; requests.get('http://localhost:8000/health', timeout=10)"
+    CMD python -c "import os, requests; requests.get(f'http://localhost:{os.environ.get(\'PORT\', \'8000\')}/health', timeout=10)"
 
 # Run the application
-CMD ["python", "-m", "uvicorn", "src.aiapi.server:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["sh", "-c", "python -m uvicorn src.aiapi.server:app --host 0.0.0.0 --port ${PORT:-8000}"]

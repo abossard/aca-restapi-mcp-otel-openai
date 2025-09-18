@@ -43,6 +43,7 @@ variable "container_registry_sku" {
     condition     = contains(["Basic", "Standard", "Premium"], var.container_registry_sku)
     error_message = "container_registry_sku must be one of Basic, Standard, Premium"
   }
+  default = "Premium"
 }
 
 ############################
