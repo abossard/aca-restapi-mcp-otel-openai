@@ -77,7 +77,12 @@ resource "azurerm_container_app" "main" {
         name  = "AZURE_AI_SERVICES_DEPLOYMENT_GPT4O_MINI"
         value = var.enable_ai_foundry ? azurerm_cognitive_deployment.gpt4o_mini[0].name : ""
       }
-
+  
+      env {
+        name  = "APPLICATIONINSIGHTS_CONNECTION_STRING"
+        value = azurerm_application_insights.main.connection_string
+      }
+      
       env {
         name  = "AZURE_SEARCH_SERVICE_ENDPOINT"
         value = "https://${azurerm_search_service.main.name}.search.windows.net"

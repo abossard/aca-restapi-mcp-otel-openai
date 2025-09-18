@@ -181,7 +181,7 @@ All other Terraform variables are documented inline in `infra/variables.tf`. You
 
 ## Observability & Telemetry
 - **Managed Agent path**: Enable `TF_VAR_enable_container_apps_managed_otel=true`. Container Apps streams traces and logs into Application Insights using the connection string provisioned by Terraform.
-- **Manual OTLP path**: Leave the feature disabled; the app will fall back to OTLP gRPC export using `OTEL_EXPORTER_OTLP_*` variables (ACA injects defaults automatically).
+- **Local console path**: If `APPLICATIONINSIGHTS_CONNECTION_STRING` isn’t set (for example, when running locally), the app wires a `ConsoleSpanExporter` so spans print to stdout for quick debugging.
 - **Instrumentation control**: Set `ENABLE_OTEL=true` to wire FastAPI + outbound request tracing; leave unset for minimal overhead.
 - **Dashboards**: Use `azd monitor --overview` to jump directly into the curated Azure Monitor workbook for your Container App.
 

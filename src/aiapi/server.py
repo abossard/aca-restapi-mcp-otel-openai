@@ -20,11 +20,10 @@ from azure.identity import DefaultAzureCredential
 from azure.search.documents.aio import SearchClient
 from openai import AsyncAzureOpenAI
 from opentelemetry import trace
-from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.instrumentation.requests import RequestsInstrumentor
 from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.sdk.trace.export import ConsoleSpanExporter, SimpleSpanProcessor
 from opentelemetry.sdk.resources import Resource
 
 
@@ -56,62 +55,35 @@ def _is_truthy(value: Optional[str]) -> bool:
         return False
     return value.strip().lower() in {"1", "true", "yes", "on"}
 
-def _resolve_otlp_traces_endpoint() -> str:
-    """Resolve the OTLP traces endpoint using a precedence order.
-
-    Precedence (first non-empty wins):
-      1. OTEL_EXPORTER_OTLP_TRACES_ENDPOINT (standard per-signal var)
-      2. OTEL_EXPORTER_OTLP_ENDPOINT (standard base var – injected by ACA managed OTEL agent)
-      3. CONTAINERAPP_OTEL_TRACING_GRPC_ENDPOINT (ACA specific per-signal injection)
-      4. Fallback local dev default 'http://localhost:4317'
-
-    Notes:
-    - ACA managed OpenTelemetry agent auto-injects the standard variables (docs: https://learn.microsoft.com/azure/container-apps/opentelemetry-agents)
-    - Managed agent currently supports only gRPC transport.
-    """
-    candidates = [
-        os.getenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"),
-        os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT"),
-        # Normalize potential trailing path if someone passes /v1/traces/ style endpoint; the OTLP gRPC exporter expects host[:port]
-        (lambda v: v.rstrip('/') if v else v)(os.getenv("CONTAINERAPP_OTEL_TRACING_GRPC_ENDPOINT")),
-    ]
-    for c in candidates:
-        if c:  # first non-empty
-            return c
-    return "http://localhost:4317"
-
-
 def setup_telemetry():
     """Configure OpenTelemetry tracing.
 
     Logic:
       - If Application Insights connection string present, use Azure Monitor distro (adds AI exporters + default instr).
-      - Otherwise fall back to manual OTLP exporter with endpoint resolution.
+      - Otherwise fall back to console exporting for local development visibility.
     """
     ai_conn = os.getenv("APPLICATIONINSIGHTS_CONNECTION_STRING")
 
     if ai_conn:
         # Azure Monitor OpenTelemetry Distro handles tracer provider + instrumentation.
-        configure_azure_monitor(connection_string=ai_conn)
+        configure_azure_monitor(connection_string=ai_conn, logger_name="aiapi")
         tracer = trace.get_tracer(__name__)
         logger.info("Telemetry initialized via Azure Monitor OpenTelemetry Distro")
         return tracer
 
-    # Manual OTLP exporter path
+    # Local development path: emit spans to stdout for easy inspection.
     resource = Resource.create({
         "service.name": os.getenv("OTEL_SERVICE_NAME", "aca-restapi-mcp-otel-openai"),
         "service.version": os.getenv("OTEL_SERVICE_VERSION", "1.0.0"),
     })
-    trace.set_tracer_provider(TracerProvider(resource=resource))
+    provider = TracerProvider(resource=resource)
+    trace.set_tracer_provider(provider)
     tracer = trace.get_tracer(__name__)
-    endpoint = _resolve_otlp_traces_endpoint()
-    protocol = os.getenv("OTEL_EXPORTER_OTLP_PROTOCOL", "grpc")
-    if protocol.lower() != "grpc":
-        logger.warning("Non-gRPC OTLP protocol configured; ACA managed agent supports only gRPC", protocol=protocol)
-    otlp_exporter = OTLPSpanExporter(endpoint=endpoint)
-    span_processor = BatchSpanProcessor(otlp_exporter)
-    trace.get_tracer_provider().add_span_processor(span_processor)
-    logger.info("Telemetry initialized via manual OTLP exporter", otlp_endpoint=endpoint, protocol=protocol)
+
+    console_exporter = ConsoleSpanExporter()
+    span_processor = SimpleSpanProcessor(console_exporter)
+    provider.add_span_processor(span_processor)
+    logger.info("Telemetry initialized with console exporter (local mode)")
     return tracer
 
 # Initialize tracer only when explicitly enabled
