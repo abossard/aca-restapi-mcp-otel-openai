@@ -14,6 +14,7 @@ from typing import Dict, List, Optional
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import get_swagger_ui_html
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, Field
 from azure.identity import DefaultAzureCredential
 from azure.search.documents.aio import SearchClient
@@ -197,6 +198,10 @@ class AIResponse(BaseModel):
 class HealthResponse(BaseModel):
     status: str
     services: Dict[str, bool]
+
+@app.get("/", include_in_schema=False)
+async def root_redirect():
+    return RedirectResponse(url="/api-explorer")
 
 # Custom interactive documentation endpoint using Swagger UI
 @app.get("/api-explorer", include_in_schema=False)

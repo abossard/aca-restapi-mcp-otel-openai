@@ -66,6 +66,10 @@ resource "azurerm_container_app" "main" {
         value = var.enable_ai_foundry ? azurerm_cognitive_account.ai_services[0].endpoint : ""
       }
       env {
+        name  = "AZURE_OPENAI_ENDPOINT"
+        value = var.enable_ai_foundry ? azurerm_cognitive_account.ai_services[0].endpoint : ""
+      }
+      env {
         name  = "AZURE_AI_SERVICES_DEPLOYMENT_GPT4O"
         value = var.enable_ai_foundry ? azurerm_cognitive_deployment.gpt4o[0].name : ""
       }
