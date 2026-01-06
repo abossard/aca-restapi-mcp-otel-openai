@@ -1,7 +1,7 @@
 fastapi==0.116.1
 uvicorn[standard]==0.35.0
 pydantic==2.11.9
-aiohttp==3.9.5
+aiohttp==3.13.3
 azure-identity==1.25.0
 azure-keyvault-secrets==4.10.0
 azure-search-documents==11.5.3
