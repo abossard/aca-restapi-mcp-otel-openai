@@ -294,3 +294,51 @@ resource "azurerm_role_assignment" "ai_foundry_contributor" {
 - Some newer AI Foundry features may require the AzAPI provider
 - Regional availability may be limited
 - Certain enterprise features require specific Azure subscription types
+
+## Post-Provision: AI Search Index Creation
+
+Azure AI Search indexes cannot be reliably created via Terraform/AzAPI due to schema validation issues. Use the `postprovision` hook in `azure.yaml` to create indexes after infrastructure is provisioned:
+
+### azure.yaml Configuration
+
+```yaml
+hooks:
+  postprovision:
+    posix:
+      shell: sh
+      run: ./scripts/create-search-index.sh
+```
+
+### scripts/create-search-index.sh
+
+```bash
+#!/bin/bash
+# Create the 'documents' index in Azure AI Search using Azure AD auth
+# (Required when local_authentication_enabled = false on the search service)
+
+set -e
+
+SEARCH_SERVICE="${1:-aca-restapi-v2-search-mcpai}"
+RG="${2:-rg-aca-restapi-v2-mcpai}"
+INDEX_NAME="${3:-documents}"
+
+echo "Getting Azure AD access token..."
+ACCESS_TOKEN=$(az account get-access-token --resource "https://search.azure.com" --query "accessToken" -o tsv)
+
+echo "Creating index '$INDEX_NAME' in $SEARCH_SERVICE..."
+curl -s -X PUT \
+    "https://${SEARCH_SERVICE}.search.windows.net/indexes/${INDEX_NAME}?api-version=2024-07-01" \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+    -d '{
+        "name": "'"${INDEX_NAME}"'",
+        "fields": [
+            {"name": "id", "type": "Edm.String", "key": true, "searchable": false},
+            {"name": "content", "type": "Edm.String", "searchable": true, "analyzer": "standard.lucene"},
+            {"name": "title", "type": "Edm.String", "searchable": true},
+            {"name": "source", "type": "Edm.String", "filterable": true, "searchable": false}
+        ]
+    }'
+```
+
+This ensures the search index exists before the application attempts to use it.
