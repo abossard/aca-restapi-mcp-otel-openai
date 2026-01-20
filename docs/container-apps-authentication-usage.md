@@ -1,240 +1,148 @@
 # Container Apps Authentication Usage Guide
 
-This document explains how to deploy and configure Azure Container Apps with authentication using our flexible Terraform configuration.
+This guide explains how to deploy and use Azure Container Apps authentication in this project.
 
 ## Overview
 
-Our Terraform configuration now provisions Container Apps Authentication natively (via AzAPI) — no post-deployment script required. Two modes are still supported:
+Two authentication modes are supported:
 
-1. **Automatic App Registration with Federated (Workload) Identity** (Recommended, secretless)
-2. **Existing App Registration with Client Secret** (Only if you must reuse an existing registration)
+1. **Federated Identity** (Recommended) - Secretless, auto-created app registration
+2. **Existing App Registration** - Use your own app registration with client secret
 
-## Deployment Options
+## Quick Start
 
-### Option 1: Automatic App Registration with Federated Trust (Recommended)
-
-This option creates a new app registration with federated identity credentials, eliminating the need for client secrets.
-
-#### 1. Deploy Infrastructure
+### Deploy with Federated Identity (Default)
 
 ```bash
-cd infra
+# Initialize environment
+azd init -e myenv
 
-# Create terraform.tfvars
-cat > terraform.tfvars << EOF
-# Basic Configuration
-project_name = "my-api-project"
-environment  = "dev"
-location     = "Switzerland North"
+# Deploy (creates app registration automatically)
+azd up
+```
 
-# Authentication Configuration
-enable_container_app_auth = true
-create_app_registration  = true
-app_registration_name    = "my-api-auth-app"  # Optional, defaults to project-auth-environment
+That's it! Authentication is configured automatically.
 
-# Optional: Enable private endpoints
-enable_private_endpoints = false
-EOF
+### Deploy with Existing App Registration
+
+```bash
+# Set your app registration details
+azd env set TF_VAR_create_app_registration false
+azd env set TF_VAR_existing_app_registration_client_id "your-client-id"
+azd env set TF_VAR_existing_app_registration_client_secret "your-secret"
 
 # Deploy
-terraform init
-terraform plan -out=tfplan
-terraform apply tfplan
+azd up
 ```
 
-Terraform applies the authentication config automatically as part of the same apply (resource: Microsoft.App/containerApps/authConfigs name "current"). No extra step needed.
-
-### Option 2: Existing App Registration with Client Secret
-
-This option uses an existing app registration that you've created manually.
-
-#### 1. Prerequisites
-
-First, create an app registration manually in Azure Portal or via Azure CLI:
-
-```bash
-# Create app registration
-APP_REGISTRATION=$(az ad app create \
-  --display-name "my-api-auth-app" \
-  --web-redirect-uris "https://my-api-project-ca-dev.azurecontainerapps.io/.auth/login/aad/callback" \
-  --enable-id-token-issuance)
-
-CLIENT_ID=$(echo $APP_REGISTRATION | jq -r .appId)
-
-# Create client secret
-CLIENT_SECRET=$(az ad app credential reset \
-  --id $CLIENT_ID \
-  --append \
-  --query password --output tsv)
-
-echo "Client ID: $CLIENT_ID"
-echo "Client Secret: $CLIENT_SECRET"
-```
-
-#### 2. Deploy Infrastructure
-
-```bash
-cd infra
-
-# Create terraform.tfvars
-cat > terraform.tfvars << EOF
-# Basic Configuration
-project_name = "my-api-project"
-environment  = "dev"
-location     = "Switzerland North"
-
-# Authentication Configuration
-enable_container_app_auth              = true
-create_app_registration                = false
-existing_app_registration_client_id    = "12345678-1234-1234-1234-123456789abc"
-existing_app_registration_client_secret = "your-client-secret-here"
-EOF
-
-# Deploy
-terraform init
-terraform plan -out=tfplan
-terraform apply tfplan
-```
-
-Authentication is provisioned during the same Terraform apply. Provide the secret via `existing_app_registration_client_secret` and it is passed into the Container App secret/env + authConfig.
-
-## Variable Reference
+## Configuration Variables
 
 | Variable | Type | Default | Description |
 |----------|------|---------|-------------|
-| `enable_container_app_auth` | bool | `true` | Enable authentication for Container Apps |
-| `create_app_registration` | bool | `true` | Create new app registration (true) or use existing (false) |
-| `app_registration_name` | string | `""` | Name for new app registration (auto-generated if empty) |
-| `existing_app_registration_client_id` | string | `""` | Client ID of existing app registration (when reusing) |
-| `existing_app_registration_client_secret` | string | `""` | Client secret for existing app registration (optional if federated) |
-| `container_app_auth_require_authentication` | bool | `true` | Force redirect to provider if true |
-| `container_app_auth_unauthenticated_action` | string | `RedirectToLoginPage` | Behavior for unauthenticated requests |
-| `container_app_auth_allowed_audiences` | list(string) | `[]` | If empty defaults to `api://<client_id>` |
+| `enable_container_app_auth` | bool | `true` | Enable authentication |
+| `create_app_registration` | bool | `true` | Create new federated app reg |
+| `app_registration_name` | string | auto | Custom name for app reg |
+| `container_app_auth_require_authentication` | bool | `true` | Redirect unauthenticated users |
+| `container_app_auth_unauthenticated_action` | string | `RedirectToLoginPage` | Action for unauth requests |
 
-## Authentication Flow
+## How It Works
 
-### For Users
-1. User accesses the Container App URL
-2. Container Apps authentication middleware redirects to Azure AD
-3. User authenticates with Azure AD
-4. Azure AD redirects back to Container App with authentication token
-5. User can access the protected application
+### User Authentication Flow
 
-### For Applications
-When authentication is enabled, your application can access user information through headers:
+```
+User → Container App → Entra ID Login → Redirect Back → Authenticated Access
+```
+
+1. User accesses the app URL
+2. Container Apps middleware intercepts unauthenticated requests
+3. User is redirected to Entra ID login
+4. After login, user is redirected back with auth token
+5. User can access the application
+
+### Accessing User Identity in Code
 
 ```python
-from fastapi import FastAPI, Request
+from fastapi import Request
 
-app = FastAPI()
-
-@app.get("/user")
-async def get_user_info(request: Request):
-    # Container Apps authentication headers
-    user_principal = request.headers.get("x-ms-client-principal-name")
-    user_id = request.headers.get("x-ms-client-principal-id")
-    
+@app.get("/me")
+async def get_current_user(request: Request):
     return {
-        "user": user_principal,
-        "user_id": user_id,
-        "authenticated": user_principal is not None
+        "name": request.headers.get("x-ms-client-principal-name"),
+        "id": request.headers.get("x-ms-client-principal-id"),
+        "authenticated": request.headers.get("x-ms-client-principal-name") is not None
     }
 ```
 
-## Terraform Outputs
+Available headers:
+- `x-ms-client-principal-name`: User's display name
+- `x-ms-client-principal-id`: User's object ID
+- `x-ms-client-principal`: Base64-encoded claims
 
-After deployment, you'll get several useful outputs:
+## Testing Authentication
+
+```bash
+# Get the Container App URL
+APP_URL=$(azd env get-values | grep CONTAINER_APP_URL | cut -d'=' -f2)
+
+# Test unauthenticated (should redirect)
+curl -I "$APP_URL"
+# Expected: 302 redirect to login
+
+# Open in browser to complete auth flow
+open "$APP_URL"
+```
+
+## Allow Anonymous Access
+
+To allow both authenticated and anonymous users:
+
+```hcl
+container_app_auth_require_authentication  = false
+container_app_auth_unauthenticated_action = "AllowAnonymous"
+```
+
+Then check authentication in code:
+
+```python
+@app.get("/data")
+async def get_data(request: Request):
+    user = request.headers.get("x-ms-client-principal-name")
+    if user:
+        return {"data": "private data", "user": user}
+    else:
+        return {"data": "public data"}
+```
+
+## Troubleshooting
+
+| Symptom | Cause | Solution |
+|---------|-------|----------|
+| Redirect URI mismatch | App reg URI doesn't match Container App | Check/update app registration |
+| 401 after login | Audience mismatch | Verify `container_app_auth_allowed_audiences` |
+| Login loop | Token validation failing | Check issuer URL and client ID |
+| No user headers | Auth not enabled | Verify `enable_container_app_auth = true` |
+
+## Outputs
+
+After deployment:
 
 ```bash
 # Check authentication status
 terraform output authentication_enabled
 
-# Get app registration details
+# Get app registration client ID
 terraform output app_registration_client_id
-terraform output app_registration_object_id
-
-# Auth config managed entirely by Terraform (no script output anymore)
 ```
 
-## Example Complete Deployment
+## Security Notes
 
-Here's a complete example from start to finish:
+- **Federated identity** eliminates secret management
+- **HTTPS only**: Container Apps enforces HTTPS
+- **Token validation**: Built-in validation of Entra ID tokens
+- **No code changes**: Auth is handled by the platform
 
-```bash
-# 1. Clone and setup
-git clone <repository-url>
-cd aca-restapi-mcp-otel-openai/infra
+## Cost
 
-# 2. Create configuration
-cat > terraform.tfvars << EOF
-project_name = "demo-api"
-environment  = "dev"
-location     = "Switzerland North"
-
-enable_container_app_auth = true
-create_app_registration  = true
-app_registration_name    = "demo-api-auth"
-
-enable_ai_foundry = true
-enable_private_endpoints = false
-EOF
-
-# 3. Deploy infrastructure
-terraform init
-terraform plan -out=tfplan
-terraform apply tfplan
-
-# 4. Access your application
-CONTAINER_APP_URL=$(terraform output -raw container_app_url)
-echo "Your application is available at: $CONTAINER_APP_URL"
-```
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Redirect URI mismatch**
-   - Terraform builds the redirect as: `https://<fqdn>/.auth/login/aad/callback`
-   - If reusing an existing app registration ensure this redirect is present in the AAD app.
-
-2. **401 after login**
-   - Confirm allowed audiences (`container_app_auth_allowed_audiences`) includes the token audience.
-   - If left empty Terraform sets `api://<client_id>`; ensure your client uses that audience.
-
-3. **Secret-based auth failing**
-   - Ensure `existing_app_registration_client_secret` populated and not expired.
-   - Confirm env var `MICROSOFT_PROVIDER_AUTHENTICATION_SECRET` present in Container App revision.
-
-4. **Federated identity not issuing tokens**
-   - Check federated credential subject matches expected format (see Terraform resource).
-   - Propagation can take a few minutes after creation.
-
-### Verification
-
-Test authentication by accessing your Container App:
-
-```bash
-# Get the Container App URL
-CONTAINER_APP_URL=$(terraform output -raw container_app_url)
-
-# Test unauthenticated access (should redirect to login)
-curl -I $CONTAINER_APP_URL
-
-# Test authenticated access via browser
-open $CONTAINER_APP_URL
-```
-
-## Security Considerations
-
-1. Prefer federated identity (no long-lived secret surface).
-2. Rotate client secrets promptly if you must use them (short expiry recommended).
-3. Limit audiences to only those required by your clients.
-4. Consider enabling conditional access policies in Entra ID for stronger posture.
-
-## Cost Implications
-
-- Authentication adds no additional Azure costs
-- App registrations are free
-- Container Apps billing is unchanged
-
-This authentication setup provides enterprise-grade security with minimal operational overhead.
+- App registrations: Free
+- Container Apps auth: No additional cost
+- Standard Container Apps billing applies

@@ -1,157 +1,128 @@
 # Azure AI Search Terraform Configuration
 
-This document provides examples for creating Azure AI Search resources using Terraform.
+This document describes the Azure AI Search setup used in this project.
 
-## Basic Configuration
+## Overview
 
-Use `azurerm_search_service` for creating Azure AI Search:
+This project uses Azure AI Search with:
+- Entra ID authentication only (no API keys)
+- Managed identity for secure access
+- Basic SKU for development
+
+## Implementation
+
+### Search Service
 
 ```hcl
 resource "azurerm_search_service" "main" {
-  name                = "${var.project_name}-search-${var.environment}"
-  resource_group_name = azurerm_resource_group.main.name
-  location            = azurerm_resource_group.main.location
-  sku                 = "basic"
-  replica_count       = 1
-  partition_count     = 1
+  name                          = "${var.project_name}-search-${var.environment_name}"
+  resource_group_name           = azurerm_resource_group.main.name
+  location                      = azurerm_resource_group.main.location
+  sku                           = "basic"
+  replica_count                 = 1
+  partition_count               = 1
+  public_network_access_enabled = var.enable_private_endpoints ? false : true
   
-  # Optional: Enable managed identity
-  identity {
-    type = "SystemAssigned"
-  }
-  
+  # Entra ID only - disable API keys
+  local_authentication_enabled = false
+
+  identity { type = "SystemAssigned" }
   tags = var.tags
 }
 ```
 
-## SKU Options and Scaling
+## Key Settings
 
-Different SKU tiers with scaling capabilities:
+| Setting | Value | Purpose |
+|---------|-------|---------|
+| `sku` | `basic` | Suitable for development/small workloads |
+| `local_authentication_enabled` | `false` | Forces Entra ID auth |
+| `public_network_access_enabled` | conditional | Disabled when private endpoints enabled |
+
+## Index Creation
+
+Azure AI Search indexes **cannot be created via Terraform**. This project uses a postprovision hook:
+
+### azure.yaml
+
+```yaml
+hooks:
+  postprovision:
+    posix:
+      shell: sh
+      run: ./scripts/create-search-index.sh
+```
+
+### scripts/create-search-index.sh
+
+```bash
+#!/bin/bash
+set -e
+
+SEARCH_SERVICE="${1:-aca-restapi-v2-search-mcpai}"
+INDEX_NAME="${2:-documents}"
+
+# Get Azure AD token (required when local_authentication_enabled = false)
+ACCESS_TOKEN=$(az account get-access-token --resource "https://search.azure.com" --query "accessToken" -o tsv)
+
+HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X PUT \
+    "https://${SEARCH_SERVICE}.search.windows.net/indexes/${INDEX_NAME}?api-version=2024-07-01" \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+    -d '{
+        "name": "'"${INDEX_NAME}"'",
+        "fields": [
+            {"name": "id", "type": "Edm.String", "key": true, "searchable": false},
+            {"name": "content", "type": "Edm.String", "searchable": true, "analyzer": "standard.lucene"},
+            {"name": "title", "type": "Edm.String", "searchable": true},
+            {"name": "source", "type": "Edm.String", "filterable": true, "searchable": false}
+        ]
+    }')
+
+if [[ "$HTTP_CODE" =~ ^(200|201|204)$ ]]; then
+    echo "Index '$INDEX_NAME' created/updated successfully"
+else
+    echo "Failed to create index (HTTP $HTTP_CODE)"
+    exit 1
+fi
+```
+
+## RBAC Permissions
+
+The Container App's managed identity needs:
 
 ```hcl
-# Development/Testing
-resource "azurerm_search_service" "dev" {
-  name                = "${var.project_name}-search-dev"
-  resource_group_name = azurerm_resource_group.main.name
-  location            = azurerm_resource_group.main.location
-  sku                 = "free"
-  # free tier doesn't support replicas/partitions
-  
-  tags = var.tags
+resource "azurerm_role_assignment" "container_app_search_reader" {
+  scope                = azurerm_search_service.main.id
+  role_definition_name = "Search Index Data Reader"
+  principal_id         = azurerm_user_assigned_identity.main.principal_id
 }
 
-# Production with high availability
-resource "azurerm_search_service" "prod" {
-  name                = "${var.project_name}-search-prod"
-  resource_group_name = azurerm_resource_group.main.name
-  location            = azurerm_resource_group.main.location
-  sku                 = "standard"
-  replica_count       = 2  # Min 2 for HA
-  partition_count     = 3  # For document scaling
-  
-  identity {
-    type = "SystemAssigned"
-  }
-  
-  # Optional: Network security
-  public_network_access_enabled = false
-  
-  tags = var.tags
+resource "azurerm_role_assignment" "container_app_search_contributor" {
+  scope                = azurerm_search_service.main.id
+  role_definition_name = "Search Index Data Contributor"
+  principal_id         = azurerm_user_assigned_identity.main.principal_id
 }
 ```
 
-## Security Configuration
+## SKU Options
 
-Enable private endpoints and disable public access:
+| SKU | Replicas | Partitions | Use Case |
+|-----|----------|------------|----------|
+| `free` | 1 | 1 | Testing only |
+| `basic` | 1-3 | 1 | Development, small workloads |
+| `standard` | 1-12 | 1-12 | Production |
 
-```hcl
-resource "azurerm_search_service" "secure" {
-  name                = "${var.project_name}-search-secure"
-  resource_group_name = azurerm_resource_group.main.name
-  location            = azurerm_resource_group.main.location
-  sku                 = "standard"
-  replica_count       = 1
-  partition_count     = 1
-  
-  # Security settings
-  public_network_access_enabled = false
-  
-  # Authentication
-  identity {
-    type = "SystemAssigned"
-  }
-  
-  tags = var.tags
-}
-```
+## Key Variables
 
-## Outputs
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `search_index_name` | string | `"documents"` | Name of the search index |
 
-```hcl
-output "search_service_name" {
-  value = azurerm_search_service.main.name
-}
+## Common Issues
 
-output "search_service_url" {
-  value = "https://${azurerm_search_service.main.name}.search.windows.net"
-}
-
-output "search_primary_key" {
-  value     = azurerm_search_service.main.primary_key
-  sensitive = true
-}
-
-output "search_query_keys" {
-  value     = azurerm_search_service.main.query_keys
-  sensitive = true
-}
-```
-
-## Validation Constraints
-
-Important validation rules:
-- **replica_count**: Must be between 1 and 12
-- **partition_count**: Must be one of: 1, 2, 3, 4, 6, 12
-- **Free tier**: Doesn't support replicas/partitions
-- **High Availability**: Requires minimum 2 replicas
-
-## Variables Example
-
-```hcl
-variable "search_sku" {
-  description = "Azure Search service tier"
-  type        = string
-  default     = "basic"
-  validation {
-    condition     = contains(["free", "basic", "standard", "standard2", "standard3"], var.search_sku)
-    error_message = "SKU must be one of: free, basic, standard, standard2, standard3."
-  }
-}
-
-variable "search_replicas" {
-  description = "Number of replicas for high availability"
-  type        = number
-  default     = 1
-  validation {
-    condition     = var.search_replicas >= 1 && var.search_replicas <= 12
-    error_message = "Replica count must be between 1 and 12."
-  }
-}
-
-variable "search_partitions" {
-  description = "Number of partitions for scaling"
-  type        = number
-  default     = 1
-  validation {
-    condition     = contains([1, 2, 3, 4, 6, 12], var.search_partitions)
-    error_message = "Partition count must be one of: 1, 2, 3, 4, 6, 12."
-  }
-}
-```
-
-## Important Notes
-
-- Index creation via Terraform is not currently supported (use REST API post-deployment)
-- Services created after April 2024 have larger partitions and higher vector quotas
-- Use managed identity for secure authentication in production
-- For 1GB capacity with 10k documents, basic tier should be sufficient
+| Issue | Solution |
+|-------|----------|
+| 401 on index creation | Use Azure AD bearer token, not API key |
+| Index not found | Run `./scripts/create-search-index.sh` manually |
+| 403 on queries | Add RBAC roles to the calling identity |
