@@ -1,7 +1,7 @@
 # Cognitive Services Account & Model Deployments (conditional)
 resource "azurerm_cognitive_account" "ai_services" {
   count                         = var.enable_ai_foundry ? 1 : 0
-  name                          = "${var.project_name}-aiservices-${var.environment}"
+  name                          = "${var.project_name}-aiservices-${var.environment_name}"
   location                      = azurerm_resource_group.main.location
   resource_group_name           = azurerm_resource_group.main.name
   kind                          = "OpenAI"

@@ -1,6 +1,6 @@
 # Azure AI Search Service
 resource "azurerm_search_service" "main" {
-  name                          = "${var.project_name}-search-${var.environment}"
+  name                          = "${var.project_name}-search-${var.environment_name}"
   resource_group_name           = azurerm_resource_group.main.name
   location                      = azurerm_resource_group.main.location
   sku                           = "basic"

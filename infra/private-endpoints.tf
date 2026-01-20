@@ -6,7 +6,7 @@ module "private_link_ai_foundry" {
   source              = "./modules/private_link"
   enable              = var.enable_private_endpoints && var.enable_ai_foundry
   name_prefix         = "${var.project_name}-aifoundry"
-  environment         = var.environment
+  environment         = var.environment_name
   resource_group_name = azurerm_resource_group.main.name
   location            = azurerm_resource_group.main.location
   subnet_id           = var.enable_private_endpoints ? azurerm_subnet.private_endpoints[0].id : null
@@ -25,7 +25,7 @@ module "private_link_ai_services" {
   # Require subdomain to be set before attempting private endpoint for Cognitive Services
   enable              = var.enable_private_endpoints && var.enable_ai_foundry && var.cognitive_services_custom_subdomain != ""
   name_prefix         = "${var.project_name}-aiservices"
-  environment         = var.environment
+  environment         = var.environment_name
   resource_group_name = azurerm_resource_group.main.name
   location            = azurerm_resource_group.main.location
   subnet_id           = var.enable_private_endpoints ? azurerm_subnet.private_endpoints[0].id : null
@@ -43,7 +43,7 @@ module "private_link_search" {
   source              = "./modules/private_link"
   enable              = var.enable_private_endpoints
   name_prefix         = "${var.project_name}-search"
-  environment         = var.environment
+  environment         = var.environment_name
   resource_group_name = azurerm_resource_group.main.name
   location            = azurerm_resource_group.main.location
   subnet_id           = var.enable_private_endpoints ? azurerm_subnet.private_endpoints[0].id : null
@@ -62,7 +62,7 @@ module "private_link_acr" {
   # ACR private endpoints require Premium SKU
   enable              = var.enable_private_endpoints && var.container_registry_sku == "Premium"
   name_prefix         = "${var.project_name}-acr"
-  environment         = var.environment
+  environment         = var.environment_name
   resource_group_name = azurerm_resource_group.main.name
   location            = azurerm_resource_group.main.location
   subnet_id           = var.enable_private_endpoints ? azurerm_subnet.private_endpoints[0].id : null

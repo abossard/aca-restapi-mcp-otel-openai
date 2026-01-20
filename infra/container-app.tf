@@ -14,7 +14,7 @@ locals {
 }
 
 resource "azurerm_container_app" "main" {
-  name                         = "${var.project_name}-ca-${var.environment}"
+  name                         = "${var.project_name}-ca-${var.environment_name}"
   container_app_environment_id = azurerm_container_app_environment.main.id
   resource_group_name          = azurerm_resource_group.main.name
   revision_mode                = "Single"
@@ -119,7 +119,7 @@ resource "azurerm_container_app" "main" {
 
       env {
         name  = "ENVIRONMENT"
-        value = var.environment
+        value = var.environment_name
       }
       env {
         name  = "PROJECT_NAME"

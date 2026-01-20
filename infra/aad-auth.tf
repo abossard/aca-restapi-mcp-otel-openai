@@ -8,7 +8,7 @@ resource "azuread_application" "container_app_auth" {
     # Format: <app-name>.<env-default-domain>/.auth/login/aad/callback
     # Ensures no post-deploy patching is required and avoids redirect mismatch errors.
     redirect_uris = [
-      "https://${var.project_name}-ca-${var.environment}.${azurerm_container_app_environment.main.default_domain}/.auth/login/aad/callback"
+      "https://${var.project_name}-ca-${var.environment_name}.${azurerm_container_app_environment.main.default_domain}/.auth/login/aad/callback"
     ]
     implicit_grant {
       access_token_issuance_enabled = true
@@ -25,7 +25,7 @@ resource "azuread_application" "container_app_auth" {
   }
 
   # Use tenant ID in identifier URI to satisfy tenant policy requiring verified domain / tenant id
-  identifier_uris = ["api://${data.azurerm_client_config.current.tenant_id}/${var.project_name}-${var.environment}"]
+  identifier_uris = ["api://${data.azurerm_client_config.current.tenant_id}/${var.project_name}-${var.environment_name}"]
 
   tags = ["ContainerApp", "Authentication", "WorkloadIdentity"]
 }

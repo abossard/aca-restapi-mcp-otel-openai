@@ -1,6 +1,6 @@
 # Container Registry
 resource "azurerm_container_registry" "main" {
-  name                = "${replace(var.project_name, "-", "")}acr${var.environment}"
+  name                = "${replace(var.project_name, "-", "")}acr${var.environment_name}"
   resource_group_name = azurerm_resource_group.main.name
   location            = azurerm_resource_group.main.location
   sku                 = var.container_registry_sku
@@ -10,7 +10,7 @@ resource "azurerm_container_registry" "main" {
   public_network_access_enabled = true
   # Include azd-service-name to optionally help azd associate build output (not required, but consistent)
   tags = merge(var.tags, {
-    "azd-env-name" = var.environment
+    "azd-env-name" = var.environment_name
   })
 }
 

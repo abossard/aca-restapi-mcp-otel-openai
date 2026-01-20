@@ -4,7 +4,7 @@
 location                          = "Sweden Central"
 project_name                      = "aca-restapi"
 resource_group_name               = "rg-aca-restapi"
-environment                       = "dev"
+# environment_name is auto-set by azd from AZURE_ENV_NAME - do NOT set here
 
 # Required selections (added):
 container_registry_sku            = "Basic"          # or Standard | Premium

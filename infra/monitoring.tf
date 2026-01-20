@@ -1,6 +1,6 @@
 # Monitoring: Log Analytics + Application Insights
 resource "azurerm_log_analytics_workspace" "main" {
-  name                = "${var.project_name}-log-analytics-${var.environment}"
+  name                = "${var.project_name}-log-analytics-${var.environment_name}"
   location            = azurerm_resource_group.main.location
   resource_group_name = azurerm_resource_group.main.name
   sku                 = "PerGB2018"
@@ -9,7 +9,7 @@ resource "azurerm_log_analytics_workspace" "main" {
 }
 
 resource "azurerm_application_insights" "main" {
-  name                          = "${var.project_name}-app-insights-${var.environment}"
+  name                          = "${var.project_name}-app-insights-${var.environment_name}"
   location                      = azurerm_resource_group.main.location
   resource_group_name           = azurerm_resource_group.main.name
   workspace_id                  = azurerm_log_analytics_workspace.main.id
