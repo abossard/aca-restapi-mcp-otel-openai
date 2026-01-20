@@ -82,6 +82,19 @@ resource "azurerm_container_app" "main" {
         name  = "APPLICATIONINSIGHTS_CONNECTION_STRING"
         value = azurerm_application_insights.main.connection_string
       }
+
+      env {
+        name  = "ENABLE_OTEL"
+        value = "true"
+      }
+      env {
+        name  = "OTEL_SERVICE_NAME"
+        value = "aca-restapi-mcp-otel-openai"
+      }
+      env {
+        name  = "OTEL_SERVICE_VERSION"
+        value = "1.0.0"
+      }
       
       env {
         name  = "AZURE_SEARCH_SERVICE_ENDPOINT"

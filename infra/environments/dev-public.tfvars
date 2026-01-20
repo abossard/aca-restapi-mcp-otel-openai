@@ -14,6 +14,7 @@ ai_model_set                      = "minimal"        # or full
 enable_private_endpoints          = false
 enable_ai_foundry                 = true
 enable_container_app_auth         = true
+enable_container_apps_managed_otel = false
 local_dev_rbac                    = true
 
 # Authentication (Entra ID) - using new app registration + federated (workload) identity

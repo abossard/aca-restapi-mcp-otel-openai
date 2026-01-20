@@ -13,6 +13,12 @@ variable "resource_group_name" {
   default     = ""
 }
 
+variable "azure_env_name" {
+  description = "Optional azd environment name; when set, resource names/tags include this instead of the generic environment value."
+  type        = string
+  default     = ""
+}
+
 variable "project_name" {
   description = "Project name used for resource naming"
   type        = string
