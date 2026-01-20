@@ -115,9 +115,13 @@ async def lifespan(app: FastAPI):
         # Initialize Azure OpenAI client
         azure_openai_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
         if azure_openai_endpoint:
+            # azure_ad_token_provider must be a callable that returns the token string
+            def get_token() -> str:
+                return app_state.credential.get_token("https://cognitiveservices.azure.com/.default").token
+            
             app_state.openai_client = AsyncAzureOpenAI(
                 azure_endpoint=azure_openai_endpoint,
-                azure_ad_token_provider=app_state.credential.get_token("https://cognitiveservices.azure.com/.default"),
+                azure_ad_token_provider=get_token,
                 api_version="2024-02-01"
             )
             logger.info("Azure OpenAI client initialized")

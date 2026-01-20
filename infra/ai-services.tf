@@ -7,8 +7,9 @@ resource "azurerm_cognitive_account" "ai_services" {
   kind                          = "OpenAI"
   sku_name                      = "S0"
   public_network_access_enabled = var.enable_private_endpoints ? false : true
-  # Provide custom subdomain if supplied (required for private endpoint). Using null keeps provider default when blank.
-  custom_subdomain_name = var.cognitive_services_custom_subdomain != "" ? var.cognitive_services_custom_subdomain : null
+  # Custom subdomain is REQUIRED for token authentication (local_auth_enabled = false).
+  # Auto-generate from project name + environment if not explicitly provided.
+  custom_subdomain_name = var.cognitive_services_custom_subdomain != "" ? var.cognitive_services_custom_subdomain : "${var.project_name}-${var.environment_name}"
   # Entra ID only: disable local (key) authentication if supported by provider version.
   local_auth_enabled = false
 
