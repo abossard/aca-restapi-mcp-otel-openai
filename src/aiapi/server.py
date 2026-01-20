@@ -273,15 +273,25 @@ async def query_ai(
             
             # Generate AI response
             with tracer.start_as_current_span("generate_response"):
-                system_prompt = """You are a helpful assistant that answers questions based on the provided context. 
-                If the context doesn't contain relevant information, say so clearly."""
-                
-                user_prompt = f"""Context from search results:
-                {context}
-                
-                Question: {request.query}
-                
-                Please provide a comprehensive answer based on the context above."""
+                # Adapt prompt based on whether we have relevant documents
+                if context.strip():
+                    system_prompt = """You are a helpful assistant that answers questions based on the provided context. 
+                    Use the context to provide accurate, grounded answers. If the context only partially answers the question, 
+                    supplement with your knowledge but clearly indicate what comes from the documents vs your general knowledge."""
+                    
+                    user_prompt = f"""Context from search results:
+                    {context}
+                    
+                    Question: {request.query}
+                    
+                    Please provide a comprehensive answer based on the context above."""
+                else:
+                    system_prompt = """You are a helpful AI assistant. Answer questions directly and helpfully. 
+                    Since no relevant documents were found in the knowledge base, use your general knowledge to answer."""
+                    
+                    user_prompt = f"""Question: {request.query}
+                    
+                    Note: No relevant documents were found in the knowledge base. Please answer based on your general knowledge."""
                 
                 response = await openai_client.chat.completions.create(
                     model="gpt-4o",  # Configured model name
