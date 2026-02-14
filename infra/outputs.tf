@@ -23,14 +23,30 @@ output "key_vault_id" { value = var.enable_ai_foundry ? azurerm_key_vault.main[0
 output "storage_account_id" { value = var.enable_ai_foundry ? azurerm_storage_account.main[0].id : null }
 output "ai_services_id" { value = var.enable_ai_foundry ? azurerm_cognitive_account.ai_services[0].id : null }
 output "ai_services_endpoint" { value = var.enable_ai_foundry ? azurerm_cognitive_account.ai_services[0].endpoint : null }
+output "AZURE_OPENAI_ENDPOINT" { value = var.enable_ai_foundry ? azurerm_cognitive_account.ai_services[0].endpoint : null }
 output "gpt4o_deployment_id" { value = var.enable_ai_foundry ? azurerm_cognitive_deployment.gpt4o[0].name : null }
 output "gpt4o_mini_deployment_id" { value = var.enable_ai_foundry ? azurerm_cognitive_deployment.gpt4o_mini[0].name : null }
+output "embedding_deployment_id" { value = var.enable_ai_foundry ? azurerm_cognitive_deployment.embedding[0].name : null }
+output "AZURE_AI_SERVICES_DEPLOYMENT_EMBEDDING" { value = var.enable_ai_foundry ? azurerm_cognitive_deployment.embedding[0].name : null }
 
 ############################
 # Search
 ############################
 output "search_service_url" { value = "https://${azurerm_search_service.main.name}.search.windows.net" }
 output "search_service_name" { value = azurerm_search_service.main.name }
+output "AZURE_SEARCH_SERVICE_NAME" { value = azurerm_search_service.main.name }
+output "search_endpoint" { value = "https://${azurerm_search_service.main.name}.search.windows.net" }
+output "AZURE_SEARCH_ENDPOINT" { value = "https://${azurerm_search_service.main.name}.search.windows.net" }
+output "AZURE_SEARCH_SERVICE_ENDPOINT" { value = "https://${azurerm_search_service.main.name}.search.windows.net" }
+output "search_index_name" { value = var.search_index_name }
+output "AZURE_SEARCH_INDEX" { value = var.search_index_name }
+output "search_documents_container_name" { value = local.search_ingestion_enabled ? azurerm_storage_container.search_documents[0].name : null }
+output "search_data_source_name" { value = local.search_ingestion_enabled ? azapi_data_plane_resource.search_data_source[0].name : null }
+output "search_skillset_name" { value = local.search_ingestion_enabled ? azapi_data_plane_resource.search_skillset[0].name : null }
+output "search_indexer_name" { value = local.search_ingestion_enabled ? azapi_data_plane_resource.search_indexer[0].name : null }
+output "AZURE_SEARCH_DATASOURCE_NAME" { value = local.search_ingestion_enabled ? azapi_data_plane_resource.search_data_source[0].name : null }
+output "AZURE_SEARCH_SKILLSET_NAME" { value = local.search_ingestion_enabled ? azapi_data_plane_resource.search_skillset[0].name : null }
+output "AZURE_SEARCH_INDEXER_NAME" { value = local.search_ingestion_enabled ? azapi_data_plane_resource.search_indexer[0].name : null }
 
 ############################
 # Networking / Private Endpoints
@@ -38,6 +54,7 @@ output "search_service_name" { value = azurerm_search_service.main.name }
 output "private_endpoints_enabled" { value = var.enable_private_endpoints }
 output "vnet_id" { value = var.enable_private_endpoints ? azurerm_virtual_network.main[0].id : null }
 output "private_endpoint_subnet_id" { value = var.enable_private_endpoints ? azurerm_subnet.private_endpoints[0].id : null }
+output "container_apps_infrastructure_subnet_id" { value = var.enable_private_endpoints ? azurerm_subnet.container_apps_infrastructure[0].id : null }
 output "ai_foundry_private_endpoint_ip" {
   value = var.enable_private_endpoints && var.enable_ai_foundry && module.private_link_ai_foundry.created ? try(module.private_link_ai_foundry.private_endpoint_ips["hub"], null) : null
 }
@@ -101,4 +118,3 @@ output "container_app_auth_config_id" {
   description = "Resource ID of the container app auth configuration (if managed in Terraform)"
   value       = var.enable_container_app_auth && length(azapi_resource.container_app_auth_config) > 0 ? azapi_resource.container_app_auth_config[0].id : null
 }
-

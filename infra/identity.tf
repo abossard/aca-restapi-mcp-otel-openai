@@ -1,6 +1,6 @@
 # Identity & Supporting Data
 resource "azurerm_user_assigned_identity" "main" {
-  name                = "${var.project_name}-identity-${var.environment_name}"
+  name                = local.user_assigned_identity_name
   resource_group_name = azurerm_resource_group.main.name
   location            = azurerm_resource_group.main.location
   tags                = var.tags

@@ -15,7 +15,7 @@ terraform {
     }
     azapi = {
       source  = "Azure/azapi"
-      version = "~> 1.13" # Provides access to ARM resources not yet in azurerm (authConfigs)
+      version = "~> 2.8" # Needed for Azure AI Search data-plane resources (indexes/datasources/skillsets/indexers)
     }
   }
 }

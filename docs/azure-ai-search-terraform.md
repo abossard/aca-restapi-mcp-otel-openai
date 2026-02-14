@@ -1,128 +1,61 @@
 # Azure AI Search Terraform Configuration
 
-This document describes the Azure AI Search setup used in this project.
+This project now provisions Azure AI Search end-to-end with Terraform only:
+- Search service (azurerm)
+- Search index, data source, skillset, and indexer (AzAPI data plane)
+- Managed identity RBAC for indexing and vectorization
 
 ## Overview
 
-This project uses Azure AI Search with:
-- Entra ID authentication only (no API keys)
-- Managed identity for secure access
-- Basic SKU for development
+Implemented resources:
+- `azurerm_search_service.main`
+- `azapi_data_plane_resource.search_index`
+- `azapi_data_plane_resource.search_data_source`
+- `azapi_data_plane_resource.search_skillset`
+- `azapi_data_plane_resource.search_indexer`
 
-## Implementation
+The ingestion flow is fully managed:
+- Blob storage container as source
+- Scheduled indexer (`PT5M` by default)
+- Text chunking + Azure OpenAI embeddings
+- Vector search-ready index schema
+- Native blob soft-delete detection
 
-### Search Service
+## Key Terraform Inputs
 
-```hcl
-resource "azurerm_search_service" "main" {
-  name                          = "${var.project_name}-search-${var.environment_name}"
-  resource_group_name           = azurerm_resource_group.main.name
-  location                      = azurerm_resource_group.main.location
-  sku                           = "basic"
-  replica_count                 = 1
-  partition_count               = 1
-  public_network_access_enabled = var.enable_private_endpoints ? false : true
-  
-  # Entra ID only - disable API keys
-  local_authentication_enabled = false
+| Variable | Default | Purpose |
+|---|---|---|
+| `enable_search_managed_ingestion` | `true` | Enable managed pipeline resources |
+| `search_documents_container_name` | `documents` | Source blob container |
+| `search_index_name` | `documents` | Target index name |
+| `search_indexer_schedule_interval` | `PT5M` | Incremental sync cadence |
+| `search_embedding_model_name` | `text-embedding-3-small` | Embedding deployment/model |
+| `search_embedding_model_version` | `1` | Embedding model version |
+| `search_embedding_dimensions` | `1536` | Vector field dimensions |
 
-  identity { type = "SystemAssigned" }
-  tags = var.tags
-}
-```
+## RBAC
 
-## Key Settings
+Search service managed identity gets:
+- `Storage Blob Data Reader` on storage account
+- `Cognitive Services OpenAI User` on Azure OpenAI account
 
-| Setting | Value | Purpose |
-|---------|-------|---------|
-| `sku` | `basic` | Suitable for development/small workloads |
-| `local_authentication_enabled` | `false` | Forces Entra ID auth |
-| `public_network_access_enabled` | conditional | Disabled when private endpoints enabled |
+Workload identity gets:
+- `Search Service Contributor`
+- `Search Index Data Contributor`
 
-## Index Creation
+Optional local developer RBAC is controlled by:
+- `local_dev_rbac` (bool)
+- `local_developer_principal_object_id` (optional override)
 
-Azure AI Search indexes **cannot be created via Terraform**. This project uses a postprovision hook:
+## Outputs and Local Dev Flow
 
-### azure.yaml
+Terraform outputs expose Search pipeline names and endpoints for deployment and local use, including:
+- `AZURE_SEARCH_ENDPOINT`
+- `AZURE_SEARCH_SERVICE_ENDPOINT`
+- `AZURE_SEARCH_SERVICE_NAME`
+- `AZURE_SEARCH_INDEX`
+- `search_data_source_name`
+- `search_skillset_name`
+- `search_indexer_name`
 
-```yaml
-hooks:
-  postprovision:
-    posix:
-      shell: sh
-      run: ./scripts/create-search-index.sh
-```
-
-### scripts/create-search-index.sh
-
-```bash
-#!/bin/bash
-set -e
-
-SEARCH_SERVICE="${1:-aca-restapi-v2-search-mcpai}"
-INDEX_NAME="${2:-documents}"
-
-# Get Azure AD token (required when local_authentication_enabled = false)
-ACCESS_TOKEN=$(az account get-access-token --resource "https://search.azure.com" --query "accessToken" -o tsv)
-
-HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X PUT \
-    "https://${SEARCH_SERVICE}.search.windows.net/indexes/${INDEX_NAME}?api-version=2024-07-01" \
-    -H "Content-Type: application/json" \
-    -H "Authorization: Bearer ${ACCESS_TOKEN}" \
-    -d '{
-        "name": "'"${INDEX_NAME}"'",
-        "fields": [
-            {"name": "id", "type": "Edm.String", "key": true, "searchable": false},
-            {"name": "content", "type": "Edm.String", "searchable": true, "analyzer": "standard.lucene"},
-            {"name": "title", "type": "Edm.String", "searchable": true},
-            {"name": "source", "type": "Edm.String", "filterable": true, "searchable": false}
-        ]
-    }')
-
-if [[ "$HTTP_CODE" =~ ^(200|201|204)$ ]]; then
-    echo "Index '$INDEX_NAME' created/updated successfully"
-else
-    echo "Failed to create index (HTTP $HTTP_CODE)"
-    exit 1
-fi
-```
-
-## RBAC Permissions
-
-The Container App's managed identity needs:
-
-```hcl
-resource "azurerm_role_assignment" "container_app_search_reader" {
-  scope                = azurerm_search_service.main.id
-  role_definition_name = "Search Index Data Reader"
-  principal_id         = azurerm_user_assigned_identity.main.principal_id
-}
-
-resource "azurerm_role_assignment" "container_app_search_contributor" {
-  scope                = azurerm_search_service.main.id
-  role_definition_name = "Search Index Data Contributor"
-  principal_id         = azurerm_user_assigned_identity.main.principal_id
-}
-```
-
-## SKU Options
-
-| SKU | Replicas | Partitions | Use Case |
-|-----|----------|------------|----------|
-| `free` | 1 | 1 | Testing only |
-| `basic` | 1-3 | 1 | Development, small workloads |
-| `standard` | 1-12 | 1-12 | Production |
-
-## Key Variables
-
-| Variable | Type | Default | Description |
-|----------|------|---------|-------------|
-| `search_index_name` | string | `"documents"` | Name of the search index |
-
-## Common Issues
-
-| Issue | Solution |
-|-------|----------|
-| 401 on index creation | Use Azure AD bearer token, not API key |
-| Index not found | Run `./scripts/create-search-index.sh` manually |
-| 403 on queries | Add RBAC roles to the calling identity |
+These are surfaced into `azd env get-values` after `azd provision` / `azd up`.

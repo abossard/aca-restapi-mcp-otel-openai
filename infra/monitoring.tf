@@ -1,6 +1,6 @@
 # Monitoring: Log Analytics + Application Insights
 resource "azurerm_log_analytics_workspace" "main" {
-  name                = "${var.project_name}-log-analytics-${var.environment_name}"
+  name                = local.log_analytics_workspace_name
   location            = azurerm_resource_group.main.location
   resource_group_name = azurerm_resource_group.main.name
   sku                 = "PerGB2018"
@@ -9,13 +9,20 @@ resource "azurerm_log_analytics_workspace" "main" {
 }
 
 resource "azurerm_application_insights" "main" {
-  name                          = "${var.project_name}-app-insights-${var.environment_name}"
+  name                          = local.app_insights_name
   location                      = azurerm_resource_group.main.location
   resource_group_name           = azurerm_resource_group.main.name
   workspace_id                  = azurerm_log_analytics_workspace.main.id
   application_type              = "web"
-  local_authentication_disabled = true
+  local_authentication_disabled = var.application_insights_local_auth_enabled ? false : true
   tags                          = var.tags
+
+  lifecycle {
+    precondition {
+      condition     = !(var.enable_container_apps_managed_otel && !var.application_insights_local_auth_enabled)
+      error_message = "Container Apps managed OpenTelemetry requires Application Insights local authentication to be enabled."
+    }
+  }
 }
 
 # NOTE:

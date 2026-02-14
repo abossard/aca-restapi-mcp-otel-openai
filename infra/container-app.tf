@@ -14,7 +14,7 @@ locals {
 }
 
 resource "azurerm_container_app" "main" {
-  name                         = "${var.project_name}-ca-${var.environment_name}"
+  name                         = local.container_app_name
   container_app_environment_id = azurerm_container_app_environment.main.id
   resource_group_name          = azurerm_resource_group.main.name
   revision_mode                = "Single"
@@ -77,10 +77,18 @@ resource "azurerm_container_app" "main" {
         name  = "AZURE_AI_SERVICES_DEPLOYMENT_GPT4O_MINI"
         value = var.enable_ai_foundry ? azurerm_cognitive_deployment.gpt4o_mini[0].name : ""
       }
-  
+
       env {
         name  = "APPLICATIONINSIGHTS_CONNECTION_STRING"
         value = azurerm_application_insights.main.connection_string
+      }
+
+      dynamic "env" {
+        for_each = var.application_insights_local_auth_enabled ? [] : [1]
+        content {
+          name  = "APPLICATIONINSIGHTS_AUTHENTICATION_STRING"
+          value = "Authorization=AAD;ClientId=${azurerm_user_assigned_identity.main.client_id}"
+        }
       }
 
       env {
@@ -95,7 +103,7 @@ resource "azurerm_container_app" "main" {
         name  = "OTEL_SERVICE_VERSION"
         value = "1.0.0"
       }
-      
+
       env {
         name  = "AZURE_SEARCH_SERVICE_ENDPOINT"
         value = "https://${azurerm_search_service.main.name}.search.windows.net"

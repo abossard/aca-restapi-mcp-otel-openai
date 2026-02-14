@@ -16,7 +16,7 @@ variable "resource_group_name" {
 variable "project_name" {
   description = "Project name used for resource naming"
   type        = string
-  default     = "aca-restapi-mcp"
+  default     = "anbmcp"
 }
 
 variable "environment_name" {
@@ -94,8 +94,62 @@ variable "search_index_name" {
   default     = "documents"
 }
 
+variable "enable_search_managed_ingestion" {
+  description = "Enable fully managed Azure AI Search ingestion pipeline (data source, skillset, indexer) using Terraform and AzAPI data-plane resources."
+  type        = bool
+  default     = true
+}
+
+variable "search_documents_container_name" {
+  description = "Blob container name used as the source for managed Search ingestion."
+  type        = string
+  default     = "documents"
+}
+
+variable "search_indexer_schedule_interval" {
+  description = "Indexer schedule interval in ISO8601 duration format (for example PT5M)."
+  type        = string
+  default     = "PT5M"
+}
+
+variable "search_embedding_model_name" {
+  description = "Embedding model deployed in Azure OpenAI for integrated vectorization."
+  type        = string
+  default     = "text-embedding-3-small"
+}
+
+variable "search_embedding_model_version" {
+  description = "Version of the embedding model deployment."
+  type        = string
+  default     = "1"
+}
+
+variable "search_embedding_dimensions" {
+  description = "Embedding dimensions used by both embedding skill and vector field."
+  type        = number
+  default     = 1536
+}
+
 variable "enable_container_apps_managed_otel" {
   description = "Enable Managed OpenTelemetry agent in the Container App Environment exporting traces and logs to Application Insights"
+  type        = bool
+  default     = false
+}
+
+variable "application_insights_local_auth_enabled" {
+  description = "Allow local (connection-string/API key) ingestion for Application Insights. Must be true when using Container Apps managed OpenTelemetry."
+  type        = bool
+  default     = true
+}
+
+variable "enable_resource_diagnostics" {
+  description = "Enable Azure Monitor diagnostic settings for core Azure services into Log Analytics."
+  type        = bool
+  default     = true
+}
+
+variable "enable_aoai_request_response_logs" {
+  description = "Enable Azure OpenAI RequestResponse diagnostic logs. Can contain sensitive payload data and increase ingestion cost."
   type        = bool
   default     = false
 }
@@ -138,6 +192,12 @@ variable "private_endpoint_subnet_address_prefixes" {
   default     = ["10.0.1.0/24"]
 }
 
+variable "container_apps_infrastructure_subnet_address_prefixes" {
+  description = "Address prefixes for Container Apps infrastructure subnet (must be /21 or larger for private environment integration)."
+  type        = list(string)
+  default     = ["10.0.8.0/21"]
+}
+
 ############################
 # Authentication / AAD
 ############################
@@ -173,7 +233,13 @@ variable "app_registration_name" {
 variable "local_dev_rbac" {
   description = "Grant current signed-in user broad read/usage roles for local dev convenience"
   type        = bool
-  default     = false
+  default     = true
+}
+
+variable "local_developer_principal_object_id" {
+  description = "Optional Entra object ID for a developer principal to receive local_dev_rbac role assignments. If empty, uses current signed-in identity."
+  type        = string
+  default     = ""
 }
 
 # Optional custom subdomain for Cognitive Services (required for private endpoint)

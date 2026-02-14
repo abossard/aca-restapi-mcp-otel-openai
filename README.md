@@ -11,6 +11,7 @@
 - [Deploy to Azure](#deploy-to-azure) — create or update an environment with `azd`.
 - [Run locally](#local-development) — hack on the FastAPI app without touching Azure.
 - [Understand the architecture](#architecture) — visualize services, identities, and telemetry.
+- [Managed document ingestion options](docs/ai-search-managed-ingestion-options.md) — Blob to AI Search with vectors.
 - [Solve the container image chicken-and-egg](#container-image-chicken-and-egg) — why the first deploy needs special handling.
 - [Tune Terraform inputs](#configuration-cheat-sheet) — feature flags and frequently changed variables.
 
@@ -44,7 +45,7 @@ You can run everything from the repository root.
 ### 1. Authenticate and create/select an environment
 ```bash
 azd auth login
-azd env new dev            # or reuse an existing name
+azd env new <env-name>     # or reuse an existing name
 azd env set AZURE_LOCATION swedencentral   # choose any Azure region supported by Container Apps
 ```
 
@@ -105,6 +106,22 @@ docker run --rm -p 8000:8000 \
   -e AZURE_SEARCH_ENDPOINT="https://<search>.search.windows.net" \
   -e AZURE_SEARCH_INDEX="documents" \
   aca-restapi-mcp-otel-openai
+```
+
+### End-to-end Search Verification
+Run this against your active `azd` environment to verify Search write + query with Entra ID:
+
+```bash
+uv python install 3.11
+uv venv --python 3.11 --clear .venv
+uv pip install --python .venv/bin/python -r requirements.txt
+uv run --python .venv/bin/python scripts/e2e_verify_search.py
+```
+
+Optional flags:
+```bash
+uv run --python .venv/bin/python scripts/e2e_verify_search.py --timeout-seconds 180 --poll-seconds 10
+uv run --python .venv/bin/python scripts/e2e_verify_search.py --keep-document
 ```
 
 ---
@@ -173,6 +190,9 @@ Most configuration flows through `azd env set`. Key settings:
 | Turn on Container Apps auth | `TF_VAR_enable_container_app_auth` | Enabled by default; disables if set to `false`. |
 | Force internal-only ingress | `TF_VAR_container_app_public` | Set `false` for private endpoints and no public URL. |
 | Enable managed OTEL agent | `TF_VAR_enable_container_apps_managed_otel` | When `true`, enables traces/logs to Application Insights automatically. |
+| Application Insights local auth | `TF_VAR_application_insights_local_auth_enabled` | Keep `true` for managed OTEL compatibility; set `false` only with Entra-auth telemetry configured. |
+| Enable platform diagnostics | `TF_VAR_enable_resource_diagnostics` | Sends Search/OpenAI/KeyVault/Storage/ACR logs and metrics to Log Analytics. |
+| Include AOAI request/response logs | `TF_VAR_enable_aoai_request_response_logs` | Default `false` (can include sensitive payloads + higher ingestion cost). |
 | Force app OTEL instrumentation | `ENABLE_OTEL` | App-side toggle. When `true`, FastAPI + Requests instrumentation is enabled. |
 
 All other Terraform variables are documented inline in `infra/variables.tf`. You can also keep per-environment settings in `.azure/<env>/.env`.

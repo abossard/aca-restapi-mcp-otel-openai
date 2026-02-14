@@ -1,7 +1,7 @@
 # Cognitive Services Account & Model Deployments (conditional)
 resource "azurerm_cognitive_account" "ai_services" {
   count                         = var.enable_ai_foundry ? 1 : 0
-  name                          = "${var.project_name}-aiservices-${var.environment_name}"
+  name                          = local.ai_services_name
   location                      = azurerm_resource_group.main.location
   resource_group_name           = azurerm_resource_group.main.name
   kind                          = "OpenAI"
@@ -9,7 +9,7 @@ resource "azurerm_cognitive_account" "ai_services" {
   public_network_access_enabled = var.enable_private_endpoints ? false : true
   # Custom subdomain is REQUIRED for token authentication (local_auth_enabled = false).
   # Auto-generate from project name + environment if not explicitly provided.
-  custom_subdomain_name = var.cognitive_services_custom_subdomain != "" ? var.cognitive_services_custom_subdomain : "${var.project_name}-${var.environment_name}"
+  custom_subdomain_name = var.cognitive_services_custom_subdomain != "" ? var.cognitive_services_custom_subdomain : local.cognitive_custom_subdomain_name
   # Entra ID only: disable local (key) authentication if supported by provider version.
   local_auth_enabled = false
 
@@ -44,6 +44,23 @@ resource "azurerm_cognitive_deployment" "gpt4o_mini" {
     format  = "OpenAI"
     name    = "gpt-4o-mini"
     version = "2024-07-18"
+  }
+
+  sku {
+    name     = "GlobalStandard"
+    capacity = 1
+  }
+}
+
+resource "azurerm_cognitive_deployment" "embedding" {
+  count                = var.enable_ai_foundry ? 1 : 0
+  name                 = var.search_embedding_model_name
+  cognitive_account_id = azurerm_cognitive_account.ai_services[0].id
+
+  model {
+    format  = "OpenAI"
+    name    = var.search_embedding_model_name
+    version = var.search_embedding_model_version
   }
 
   sku {

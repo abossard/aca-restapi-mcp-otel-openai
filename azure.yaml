@@ -15,10 +15,6 @@ services:
       registry: ${CONTAINER_REGISTRY_LOGIN_SERVER}
 
 hooks:
-  postprovision:
-    posix:
-      shell: sh
-      run: ./scripts/create-search-index.sh
   postdeploy:
     posix:
       shell: sh

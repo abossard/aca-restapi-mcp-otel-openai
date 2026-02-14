@@ -25,7 +25,7 @@ resource "azapi_update_resource" "container_app_env_otel" {
   #  - references to azurerm_log_analytics_workspace.main workspace id & key
   # Reintroduce only if apply ordering/race issues emerge.
 
-  body = jsonencode({
+  body = {
     properties = {
       # Preserve existing Log Analytics logs configuration (required by API validation)
       # Without including this, the 2024-10-02-preview endpoint returns:
@@ -51,5 +51,5 @@ resource "azapi_update_resource" "container_app_env_otel" {
         }
       }
     }
-  })
+  }
 }

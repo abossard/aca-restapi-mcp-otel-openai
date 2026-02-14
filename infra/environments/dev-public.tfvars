@@ -2,8 +2,8 @@
 # Adjust values as needed for your subscription / region.
 
 location                          = "Sweden Central"
-project_name                      = "aca-restapi"
-resource_group_name               = "rg-aca-restapi"
+project_name                      = "anbmcp"
+resource_group_name               = ""
 # environment_name is auto-set by azd from AZURE_ENV_NAME - do NOT set here
 
 # Required selections (added):

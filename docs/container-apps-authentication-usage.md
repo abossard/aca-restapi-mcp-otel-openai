@@ -15,7 +15,7 @@ Two authentication modes are supported:
 
 ```bash
 # Initialize environment
-azd init -e myenv
+azd init -e anbmcp
 
 # Deploy (creates app registration automatically)
 azd up

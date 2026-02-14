@@ -1,9 +1,8 @@
 # Key Vault & Storage (AI Foundry dependency)
 resource "azurerm_key_vault" "main" {
   count = var.enable_ai_foundry ? 1 : 0
-  # Key Vault name constraints: 3-24 chars, alphanumeric and dashes only. Remove dashes from project base, append -kv plus suffix.
-  # Example result: acarestapimcp-kvabc123xy (<=24).
-  name                       = substr(replace(var.project_name, "-", ""), 0, 16) == replace(var.project_name, "-", "") ? "${substr(replace(var.project_name, "-", ""), 0, 16)}-kv${substr(random_string.unique.result, 0, 3)}" : "${substr(replace(var.project_name, "-", ""), 0, 16)}-kv${substr(random_string.unique.result, 0, 2)}"
+  # Key Vault names are globally unique; short base + random suffix avoids collisions.
+  name                       = local.key_vault_name
   location                   = azurerm_resource_group.main.location
   resource_group_name        = azurerm_resource_group.main.name
   tenant_id                  = data.azurerm_client_config.current.tenant_id
@@ -19,8 +18,8 @@ resource "azurerm_key_vault" "main" {
 
 resource "azurerm_storage_account" "main" {
   count = var.enable_ai_foundry ? 1 : 0
-  # Ensure uniqueness: include first 4 chars of random suffix
-  name                            = lower(substr(replace(var.project_name, "-", ""), 0, 16))
+  # Storage account names are globally unique and must be 3-24 lowercase alphanumeric.
+  name                            = local.storage_account_name
   resource_group_name             = azurerm_resource_group.main.name
   location                        = azurerm_resource_group.main.location
   account_tier                    = "Standard"
@@ -35,4 +34,23 @@ resource "azurerm_storage_account" "main" {
   min_tls_version                 = "TLS1_2"
   is_hns_enabled                  = false
   tags                            = var.tags
+
+  blob_properties {
+    delete_retention_policy {
+      days = 7
+    }
+    versioning_enabled = false
+  }
+
+  lifecycle {
+    # Azure services can inject CORS entries; keep provisioning idempotent.
+    ignore_changes = [blob_properties[0].cors_rule]
+  }
+}
+
+resource "azurerm_storage_container" "search_documents" {
+  count                 = local.search_ingestion_enabled ? 1 : 0
+  name                  = var.search_documents_container_name
+  storage_account_id    = azurerm_storage_account.main[0].id
+  container_access_type = "private"
 }

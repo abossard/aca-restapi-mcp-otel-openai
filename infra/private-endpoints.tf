@@ -5,7 +5,7 @@
 module "private_link_ai_foundry" {
   source              = "./modules/private_link"
   enable              = var.enable_private_endpoints && var.enable_ai_foundry
-  name_prefix         = "${var.project_name}-aifoundry"
+  name_prefix         = local.private_link_prefix_ai_foundry
   environment         = var.environment_name
   resource_group_name = azurerm_resource_group.main.name
   location            = azurerm_resource_group.main.location
@@ -22,9 +22,9 @@ module "private_link_ai_foundry" {
 
 module "private_link_ai_services" {
   source = "./modules/private_link"
-  # Require subdomain to be set before attempting private endpoint for Cognitive Services
-  enable              = var.enable_private_endpoints && var.enable_ai_foundry && var.cognitive_services_custom_subdomain != ""
-  name_prefix         = "${var.project_name}-aiservices"
+  # Cognitive account always has a subdomain (explicit or auto-generated), so private endpoint can be gated on feature flags only.
+  enable              = var.enable_private_endpoints && var.enable_ai_foundry
+  name_prefix         = local.private_link_prefix_ai_services
   environment         = var.environment_name
   resource_group_name = azurerm_resource_group.main.name
   location            = azurerm_resource_group.main.location
@@ -42,7 +42,7 @@ module "private_link_ai_services" {
 module "private_link_search" {
   source              = "./modules/private_link"
   enable              = var.enable_private_endpoints
-  name_prefix         = "${var.project_name}-search"
+  name_prefix         = local.private_link_prefix_search
   environment         = var.environment_name
   resource_group_name = azurerm_resource_group.main.name
   location            = azurerm_resource_group.main.location
@@ -61,7 +61,7 @@ module "private_link_acr" {
   source = "./modules/private_link"
   # ACR private endpoints require Premium SKU
   enable              = var.enable_private_endpoints && var.container_registry_sku == "Premium"
-  name_prefix         = "${var.project_name}-acr"
+  name_prefix         = local.private_link_prefix_acr
   environment         = var.environment_name
   resource_group_name = azurerm_resource_group.main.name
   location            = azurerm_resource_group.main.location

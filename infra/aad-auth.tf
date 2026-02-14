@@ -8,7 +8,7 @@ resource "azuread_application" "container_app_auth" {
     # Format: <app-name>.<env-default-domain>/.auth/login/aad/callback
     # Ensures no post-deploy patching is required and avoids redirect mismatch errors.
     redirect_uris = [
-      "https://${var.project_name}-ca-${var.environment_name}.${azurerm_container_app_environment.main.default_domain}/.auth/login/aad/callback"
+      "https://${local.container_app_name}.${azurerm_container_app_environment.main.default_domain}/.auth/login/aad/callback"
     ]
     implicit_grant {
       access_token_issuance_enabled = true
@@ -25,7 +25,7 @@ resource "azuread_application" "container_app_auth" {
   }
 
   # Use tenant ID in identifier URI to satisfy tenant policy requiring verified domain / tenant id
-  identifier_uris = ["api://${data.azurerm_client_config.current.tenant_id}/${var.project_name}-${var.environment_name}"]
+  identifier_uris = ["api://${data.azurerm_client_config.current.tenant_id}/${local.name_base}-${local.unique_suffix}"]
 
   tags = ["ContainerApp", "Authentication", "WorkloadIdentity"]
 }
@@ -75,7 +75,7 @@ resource "azapi_resource" "container_app_auth_config" {
   parent_id = azurerm_container_app.main.id
 
   # Build the full ARM body. If using an existing app registration with client secret, we rely on secret already set via container app block.
-  body = jsonencode({
+  body = {
     properties = {
       platform = {
         enabled        = true
@@ -104,7 +104,7 @@ resource "azapi_resource" "container_app_auth_config" {
         }
       }
     }
-  })
+  }
 
   lifecycle {
     ignore_changes = [body] # Avoid perpetual diffs if platform adds defaults; remove if strict drift desired

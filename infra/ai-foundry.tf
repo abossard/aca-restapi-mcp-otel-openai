@@ -1,7 +1,7 @@
 # Azure AI Foundry Hub & Project (conditional)
 resource "azurerm_ai_foundry" "main" {
   count               = var.enable_ai_foundry ? 1 : 0
-  name                = "${var.project_name}-aifoundry-${var.environment_name}"
+  name                = local.ai_foundry_name
   location            = azurerm_resource_group.main.location
   resource_group_name = azurerm_resource_group.main.name
 
@@ -13,11 +13,16 @@ resource "azurerm_ai_foundry" "main" {
   identity { type = "SystemAssigned" }
 
   tags = var.tags
+
+  lifecycle {
+    # Service may enforce this independently; avoid perpetual drift.
+    ignore_changes = [public_network_access]
+  }
 }
 
 resource "azurerm_ai_foundry_project" "main" {
   count              = var.enable_ai_foundry ? 1 : 0
-  name               = "${var.project_name}-project-${var.environment_name}"
+  name               = local.ai_foundry_project_name
   location           = azurerm_resource_group.main.location
   ai_services_hub_id = azurerm_ai_foundry.main[0].id
   tags               = var.tags

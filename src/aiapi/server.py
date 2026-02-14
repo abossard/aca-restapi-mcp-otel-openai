@@ -66,7 +66,16 @@ def setup_telemetry():
 
     if ai_conn:
         # Azure Monitor OpenTelemetry Distro handles tracer provider + instrumentation.
-        configure_azure_monitor(connection_string=ai_conn, logger_name="aiapi")
+        configure_kwargs = {
+            "connection_string": ai_conn,
+            "logger_name": "aiapi",
+        }
+        ai_auth_string = os.getenv("APPLICATIONINSIGHTS_AUTHENTICATION_STRING", "")
+        if "authorization=aad" in ai_auth_string.lower():
+            # Enable Entra ID-based ingestion when local auth is disabled on App Insights.
+            configure_kwargs["credential"] = DefaultAzureCredential()
+
+        configure_azure_monitor(**configure_kwargs)
         tracer = trace.get_tracer(__name__)
         logger.info("Telemetry initialized via Azure Monitor OpenTelemetry Distro")
         return tracer
