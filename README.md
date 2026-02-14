@@ -11,9 +11,35 @@
 - [Deploy to Azure](#deploy-to-azure) — create or update an environment with `azd`.
 - [Run locally](#local-development) — hack on the FastAPI app without touching Azure.
 - [Understand the architecture](#architecture) — visualize services, identities, and telemetry.
+- [Microsoft Azure AI examples & accelerators](#microsoft-azure-ai-examples--accelerators) — official samples and solution accelerators.
+- [Project walkthrough deck](docs/project-walkthrough-presentation.md) — presentation-style end-to-end tour with diagrams.
+- [Document ingestion methods for AI Search](docs/ai-search-document-ingestion-methods.md) — push, pull, and hybrid options.
 - [Managed document ingestion options](docs/ai-search-managed-ingestion-options.md) — Blob to AI Search with vectors.
 - [Solve the container image chicken-and-egg](#container-image-chicken-and-egg) — why the first deploy needs special handling.
 - [Tune Terraform inputs](#configuration-cheat-sheet) — feature flags and frequently changed variables.
+
+---
+
+## Microsoft Azure AI Examples & Accelerators
+Official Microsoft links you can use as implementation references:
+
+### Starter Samples
+- [Azure AI Foundry samples repo (`azure-ai-foundry/foundry-samples`)](https://github.com/azure-ai-foundry/foundry-samples)
+- [Azure AI Search + OpenAI RAG sample (`Azure-Samples/azure-search-openai-demo`)](https://github.com/Azure-Samples/azure-search-openai-demo)
+- [Get started with AI agents (`Azure-Samples/get-started-with-ai-agents`)](https://github.com/Azure-Samples/get-started-with-ai-agents)
+- [Foundry chat baseline implementation (`Azure-Samples/azure-ai-foundry-baseline`)](https://github.com/Azure-Samples/azure-ai-foundry-baseline)
+
+### Microsoft Guidance
+- [How to get started with AI templates (Microsoft Learn)](https://learn.microsoft.com/en-us/azure/ai-studio/how-to/develop/ai-template-get-started)
+- [Baseline Microsoft Foundry Chat reference architecture (Azure Architecture Center)](https://learn.microsoft.com/en-us/azure/architecture/ai-ml/architecture/baseline-microsoft-foundry-chat)
+
+### Solution Accelerators
+- [Solution Accelerators catalog (`accelerators.ms`)](https://accelerators.ms)
+- [Solution Accelerators GitHub org entry (`microsoft/Solution-Accelerators`)](https://github.com/microsoft/Solution-Accelerators)
+- [Document Knowledge Mining accelerator](https://github.com/microsoft/Document-Knowledge-Mining-Solution-Accelerator)
+- [Content Processing accelerator](https://github.com/microsoft/content-processing-solution-accelerator)
+- [Conversation Knowledge Mining accelerator](https://github.com/microsoft/Conversation-Knowledge-Mining-Solution-Accelerator)
+- [Document Generation accelerator](https://github.com/microsoft/document-generation-solution-accelerator)
 
 ---
 
