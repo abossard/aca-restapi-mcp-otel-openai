@@ -8,7 +8,7 @@ resource_group_name               = ""
 
 # Required selections (added):
 container_registry_sku            = "Basic"          # or Standard | Premium
-ai_model_set                      = "minimal"        # or full
+ai_model_set                      = "full"        # or full
 
 # Feature toggles
 enable_private_endpoints          = false
